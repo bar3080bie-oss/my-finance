@@ -65,9 +65,25 @@ export default function App() {
 
   const addAccount = () => {
     if (!newAccount.name || !newAccount.last4) return;
-    setAccounts(prev => [...prev, { ...newAccount, id: "acc" + Date.now(), balance: 0 }]);
+    if (newAccount.id && accounts.find(a => a.id === newAccount.id)) {
+      setAccounts(prev => prev.map(a => a.id === newAccount.id ? { ...a, name: newAccount.name, last4: newAccount.last4, color: newAccount.color } : a));
+    } else {
+      setAccounts(prev => [...prev, { ...newAccount, id: "acc" + Date.now(), balance: 0 }]);
+    }
     setNewAccount({ type: "bank", name: "", last4: "", color: "#00d4aa" });
     setShowAddAccount(false);
+  };
+
+  const deleteAccount = (id) => {
+    if (window.confirm("למחוק את החשבון וכל העסקאות שלו?")) {
+      setAccounts(prev => prev.filter(a => a.id !== id));
+      setTransactions(prev => prev.filter(t => t.accountId !== id));
+    }
+  };
+
+  const editAccount = (acc) => {
+    setNewAccount({ ...acc });
+    setShowAddAccount(true);
   };
 
   const addTx = () => {
@@ -292,6 +308,10 @@ export default function App() {
                   </div>
 
                   {/* Import Excel */}
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                    <button onClick={() => editAccount(acc)} style={{ ...S.btnGhost, flex: 1, fontSize: 12 }}>✏️ ערוך</button>
+                    <button onClick={() => deleteAccount(acc.id)} style={{ flex: 1, background: "#ff6b6b22", border: "none", borderRadius: 10, padding: 11, color: "#ff6b6b", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>🗑️ מחק</button>
+                  </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => { setNewTx(p => ({ ...p, accountId: acc.id })); setShowAddTx(true); }} style={{ ...S.btn, flex: 1, fontSize: 12 }}>+ עסקה ידנית</button>
                     <label style={{ ...S.btn, flex: 1, fontSize: 12, textAlign: "center", cursor: "pointer" }}>
@@ -368,6 +388,10 @@ export default function App() {
                     </div>
                   </div>
 
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                    <button onClick={() => editAccount(acc)} style={{ ...S.btnGhost, flex: 1, fontSize: 12 }}>✏️ ערוך</button>
+                    <button onClick={() => deleteAccount(acc.id)} style={{ flex: 1, background: "#ff6b6b22", border: "none", borderRadius: 10, padding: 11, color: "#ff6b6b", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>🗑️ מחק</button>
+                  </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => { setNewTx(p => ({ ...p, accountId: acc.id, type: "expense" })); setShowAddTx(true); }} style={{ ...S.btn, flex: 1, fontSize: 12 }}>+ עסקה ידנית</button>
                     <label style={{ ...S.btn, flex: 1, fontSize: 12, textAlign: "center", cursor: "pointer" }}>
