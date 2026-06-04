@@ -105,11 +105,11 @@ export default function App() {
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
         rows.forEach((row, i) => {
           if (i < 7) return;
-          const dateStr = row[7];
-          const desc = String(row[4] || "עסקה").trim().substring(0, 40);
-          const credit = parseFloat(String(row[2] || "").replace(/,/g, "")) || 0;
-          const debit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
-          const ref = String(row[5] || "");
+          const dateStr = row[8];
+          const desc = String(row[5] || "עסקה").trim().substring(0, 40);
+          const credit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
+          const debit = parseFloat(String(row[4] || "").replace(/,/g, "")) || 0;
+          const ref = String(row[6] || "");
           if (!dateStr || (!credit && !debit)) return;
           const importId = `${dateStr}-${ref}-${credit}-${debit}`;
           if (existingIds.has(importId)) return;
@@ -128,7 +128,7 @@ export default function App() {
         // עדכן יתרה מהשורה האחרונה
         let lastBalance = null;
         for (let r = rows.length - 1; r >= 6; r--) {
-          const bal = parseFloat(String(rows[r][0] || "").replace(/,/g, ""));
+          const bal = parseFloat(String(rows[r][1] || "").replace(/,/g, ""));
           if (!isNaN(bal) && bal !== 0) { lastBalance = bal; break; }
         }
         if (lastBalance !== null) {
