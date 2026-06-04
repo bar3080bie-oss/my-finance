@@ -116,7 +116,7 @@ export default function App() {
           existingIds.add(importId);
           const amount = debit > 0 ? debit : credit;
           const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות") || desc.includes("ע.החזר");
-         const type = debit > 0 ? "expense" : "income";
+          const type = debit > 0 ? "expense" : "income";
           const category = isCommission ? "עמלות" : "אחר";
           const dateParts = String(dateStr).split("/");
           const dateFormatted = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1].padStart(2,"0")}-${dateParts[0].padStart(2,"0")}` : new Date().toISOString().split("T")[0];
