@@ -19,21 +19,11 @@ const TreeLogo = () => (
   </svg>
 );
 
-const initialAccounts = [
-  { id: "acc1", type: "bank", name: "בנק בינלאומי", last4: "3421", color: "#00d4aa", balance: 8500 },
-  { id: "acc2", type: "bank", name: "בנק בינלאומי", last4: "7890", color: "#44cc88", balance: 12300 },
-  { id: "acc3", type: "card", name: "ויזה כ.א.ל", last4: "5544", color: "#f59e0b", balance: -2100 },
-  { id: "acc4", type: "card", name: "ישראכרט", last4: "1122", color: "#fb7185", balance: -1450 },
-];
+const initialAccounts = [];
 
-const initialTransactions = [
-  { id: 1, accountId: "acc1", type: "income", amount: 12000, category: "משכורת", desc: "משכורת חודשית", date: "2026-06-01" },
-  { id: 2, accountId: "acc1", type: "expense", amount: 3500, category: "דיור", desc: "שכר דירה", date: "2026-06-01" },
-  { id: 3, accountId: "acc3", type: "expense", amount: 800, category: "מזון", desc: "קניות סופר", date: "2026-06-02" },
-  { id: 4, accountId: "acc3", type: "expense", amount: 450, category: "תחבורה", desc: "דלק", date: "2026-06-03" },
-  { id: 5, accountId: "acc2", type: "income", amount: 2000, category: "פרילנס", desc: "פרויקט עיצוב", date: "2026-06-04" },
-  { id: 6, accountId: "acc4", type: "expense", amount: 600, category: "קניות", desc: "זארה", date: "2026-06-04" },
-];
+
+const initialTransactions = [];
+
 
 export default function App() {
   const [tab, setTab] = useState("dashboard");
