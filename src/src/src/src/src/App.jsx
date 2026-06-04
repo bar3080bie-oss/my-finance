@@ -130,10 +130,6 @@ export default function App() {
     };
     reader.readAsArrayBuffer(file);
   };
-      } catch { setImportMsg("❌ שגיאה בקריאת הקובץ"); setTimeout(() => setImportMsg(""), 3000); }
-    };
-    reader.readAsArrayBuffer(file);
-  };
 
   const sendAI = async () => {
     if (!aiInput.trim() || aiLoading) return;
