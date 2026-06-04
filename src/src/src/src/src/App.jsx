@@ -104,7 +104,7 @@ export default function App() {
           const importId = `${dateStr}-${ref}-${credit}-${debit}`;
           if (existingIds.has(importId)) return;
           existingIds.add(importId);
-          const amount = debit > 0 ? debit : credit;
+          const amount = credit > 0 ? credit : debit;
           const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות") || desc.includes("ע.החזר");
           const type = credit > 0 ? "income" : "expense";
           const category = isCommission ? "עמלות" : "אחר";
