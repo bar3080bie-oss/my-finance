@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 
 const fmt = (n) => new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n || 0);
 
-const EXPENSE_CATS = ["דיור", "מזון", "תחבורה", "בידור", "בריאות", "חינוך", "קניות", "אחר"];
+const EXPENSE_CATS = ["דיור", "מזון", "תחבורה", "בידור", "בריאות", "חינוך", "קניות", "עמלות", "אחר"];
 const INCOME_CATS = ["משכורת", "פרילנס", "השקעות", "שכירות", "אחר"];
 
 const ACCOUNT_COLORS = ["#00d4aa", "#44cc88", "#0099ff", "#f59e0b", "#a78bfa", "#fb7185"];
@@ -107,22 +107,33 @@ export default function App() {
           if (i < 7) return;
           const dateStr = row[7];
           const desc = String(row[4] || "עסקה").trim().substring(0, 40);
-          const credit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
-          const debit = parseFloat(String(row[2] || "").replace(/,/g, "")) || 0;
+          const credit = parseFloat(String(row[2] || "").replace(/,/g, "")) || 0;
+          const debit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
           const ref = String(row[5] || "");
           if (!dateStr || (!credit && !debit)) return;
           const importId = `${dateStr}-${ref}-${credit}-${debit}`;
           if (existingIds.has(importId)) return;
           existingIds.add(importId);
           const amount = credit > 0 ? credit : debit;
+          const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות") || desc.includes("ע.החזר");
           const type = credit > 0 ? "income" : "expense";
+          const category = isCommission ? "עמלות" : "אחר";
           const dateParts = String(dateStr).split("/");
           const dateFormatted = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1].padStart(2,"0")}-${dateParts[0].padStart(2,"0")}` : new Date().toISOString().split("T")[0];
           if (amount > 0) {
-            newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category: "אחר", desc, date: dateFormatted });
+            newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category, desc, date: dateFormatted });
             imported++;
           }
         });
+        // עדכן יתרה מהשורה האחרונה
+        let lastBalance = null;
+        for (let r = rows.length - 1; r >= 6; r--) {
+          const bal = parseFloat(String(rows[r][0] || "").replace(/,/g, ""));
+          if (!isNaN(bal) && bal !== 0) { lastBalance = bal; break; }
+        }
+        if (lastBalance !== null) {
+          setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, balance: lastBalance } : a));
+        }
         setTransactions(prev => [...prev, ...newTxs]);
         setImportMsg(`✅ יובאו ${imported} עסקאות בהצלחה!`);
         setTimeout(() => setImportMsg(""), 4000);
