@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 
 const fmt = (n) => new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n || 0);
+
 const EXPENSE_CATS = ["דיור", "מזון", "תחבורה", "בידור", "בריאות", "חינוך", "קניות", "עמלות", "אחר"];
 const INCOME_CATS = ["משכורת", "פרילנס", "השקעות", "שכירות", "אחר"];
+
 const ACCOUNT_COLORS = ["#00d4aa", "#44cc88", "#0099ff", "#f59e0b", "#a78bfa", "#fb7185"];
 const CARD_COLORS = ["#f59e0b", "#fb7185", "#a78bfa", "#00d4aa"];
 
@@ -18,7 +20,10 @@ const TreeLogo = () => (
 );
 
 const initialAccounts = [];
+
+
 const initialTransactions = [];
+
 
 export default function App() {
   const [tab, setTab] = useState("dashboard");
@@ -36,9 +41,8 @@ export default function App() {
   const [importMsg, setImportMsg] = useState("");
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
-useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages]);
 
-  const loadData = () => {};
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages]);
 
   const banks = accounts.filter(a => a.type === "bank");
   const cards = accounts.filter(a => a.type === "card");
@@ -46,6 +50,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
   const totalExpenses = transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const balance = totalIncome - totalExpenses;
   const expByCat = transactions.filter(t => t.type === "expense").reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + t.amount; return acc; }, {});
+
   const txForAccount = (id) => transactions.filter(t => t.accountId === id);
 
   const addAccount = () => {
@@ -89,7 +94,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
         const newTxs = [];
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
         rows.forEach((row, i) => {
-          if (i < 6) return;
+          if (i < 7) return;
           const dateStr = row[8];
           const desc = String(row[5] || "עסקה").trim().substring(0, 40);
           const credit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
@@ -100,7 +105,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
           if (existingIds.has(importId)) return;
           existingIds.add(importId);
           const amount = credit > 0 ? credit : debit;
-          const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות");
+          const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות") || desc.includes("ע.החזר");
           const type = credit > 0 ? "income" : "expense";
           const category = isCommission ? "עמלות" : "אחר";
           const dateParts = String(dateStr).split("/");
@@ -110,6 +115,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
             imported++;
           }
         });
+        // עדכן יתרה מהשורה האחרונה
         let lastBalance = null;
         for (let r = rows.length - 1; r >= 6; r--) {
           const bal = parseFloat(String(rows[r][1] || "").replace(/,/g, ""));
@@ -121,10 +127,11 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
         setTransactions(prev => [...prev, ...newTxs]);
         setImportMsg(`✅ יובאו ${imported} עסקאות בהצלחה!`);
         setTimeout(() => setImportMsg(""), 4000);
-      } catch(err) { setImportMsg("❌ שגיאה: " + err.message); setTimeout(() => setImportMsg(""), 5000); }
+      } catch(err) { setImportMsg("❌ שגיאה בקריאת הקובץ: " + err.message); setTimeout(() => setImportMsg(""), 5000); }
     };
     reader.readAsArrayBuffer(file);
   };
+
   const sendAI = async () => {
     if (!aiInput.trim() || aiLoading) return;
     const msg = aiInput.trim(); setAiInput("");
@@ -145,7 +152,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
   };
 
   const S = {
-    page: { fontFamily: "'Heebo',sans-serif", background: "#071209", minHeight: "100vh", color: "#e2e8f0" },
+    page: { fontFamily: "'Heebo',sans-serif", background: "#071209", minHeight: "100vh", color: "#e2e8f0", dir: "rtl" },
     card: { background: "#0d1f0d", borderRadius: 14, padding: 16, border: "1px solid #1a3a1a", marginBottom: 12 },
     input: { background: "#071209", border: "1px solid #1a3a1a", borderRadius: 10, padding: "10px 14px", color: "#e2e8f0", fontSize: 14, fontFamily: "inherit", outline: "none", width: "100%", boxSizing: "border-box" },
     btn: { background: "linear-gradient(135deg, #00d4aa, #44cc44)", border: "none", borderRadius: 10, padding: "11px 18px", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13 },
@@ -155,6 +162,8 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
   return (
     <div dir="rtl" style={S.page}>
       <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+
+      {/* Header */}
       <header style={{ background: "#0d1f0d", borderBottom: "1px solid #1a3a1a", padding: "13px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#0d2e18,#071a0a)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #00d4aa33" }}>
@@ -168,6 +177,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
         <button onClick={() => setAiOpen(true)} style={{ background: "#00d4aa18", border: "1px solid #00d4aa44", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#00d4aa", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🤖 יועץ AI</button>
       </header>
 
+      {/* Tabs */}
       <nav style={{ display: "flex", background: "#0a1a0a", borderBottom: "1px solid #1a3a1a", overflowX: "auto" }}>
         {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "12px 16px", border: "none", cursor: "pointer", background: "transparent", color: tab === t.id ? "#00d4aa" : "#64748b", borderBottom: tab === t.id ? "2px solid #00d4aa" : "2px solid transparent", fontWeight: tab === t.id ? 700 : 400, fontSize: 12, whiteSpace: "nowrap", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
@@ -181,6 +191,8 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
       )}
 
       <main style={{ padding: 16, maxWidth: 900, margin: "0 auto" }}>
+
+        {/* DASHBOARD */}
         {tab === "dashboard" && (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 16 }}>
@@ -195,6 +207,8 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                 </div>
               ))}
             </div>
+
+            {/* Bank accounts summary */}
             <div style={S.card}>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: "#00d4aa" }}>🏦 חשבונות בנק</div>
               {banks.map(acc => (
@@ -207,6 +221,8 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                 </div>
               ))}
             </div>
+
+            {/* Cards summary */}
             <div style={S.card}>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: "#f59e0b" }}>💳 כרטיסי אשראי</div>
               {cards.map(acc => (
@@ -219,16 +235,18 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                 </div>
               ))}
             </div>
+
+            {/* Expenses by category */}
             {Object.keys(expByCat).length > 0 && (
               <div style={S.card}>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>🌿 הוצאות לפי קטגוריה</div>
-                {Object.entries(expByCat).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => (
+                {Object.entries(expByCat).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
                   <div key={cat} style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
                       <span>{cat}</span><span style={{ color: "#94a3b8" }}>{fmt(amt)}</span>
                     </div>
                     <div style={{ background: "#142814", borderRadius: 4, height: 6 }}>
-                      <div style={{ width: `${Math.min((amt/totalExpenses)*100,100)}%`, height: "100%", borderRadius: 4, background: "linear-gradient(90deg,#00d4aa,#44cc44)" }} />
+                      <div style={{ width: `${Math.min((amt / totalExpenses) * 100, 100)}%`, height: "100%", borderRadius: 4, background: "linear-gradient(90deg,#00d4aa,#44cc44)" }} />
                     </div>
                   </div>
                 ))}
@@ -236,22 +254,28 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
             )}
           </div>
         )}
+
+        {/* ACCOUNTS */}
         {tab === "accounts" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>🏦 חשבונות בנק</h2>
               <button onClick={() => { setNewAccount({ type: "bank", name: "", last4: "", color: "#00d4aa" }); setShowAddAccount(true); }} style={S.btn}>+ הוסף חשבון</button>
             </div>
+
             {showAddAccount && (
               <div style={{ ...S.card, border: "1px solid #00d4aa44" }}>
                 <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>חשבון חדש</div>
                 <div style={{ display: "grid", gap: 10 }}>
-                  <input value={newAccount.name} onChange={e => setNewAccount(p => ({ ...p, name: e.target.value }))} placeholder="שם הבנק" style={S.input} />
-                  <input value={newAccount.last4} onChange={e => setNewAccount(p => ({ ...p, last4: e.target.value.slice(0,4) }))} placeholder="4 ספרות אחרונות" maxLength={4} style={S.input} />
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {ACCOUNT_COLORS.map(c => (
-                      <div key={c} onClick={() => setNewAccount(p => ({ ...p, color: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: newAccount.color === c ? "3px solid #fff" : "3px solid transparent" }} />
-                    ))}
+                  <input value={newAccount.name} onChange={e => setNewAccount(p => ({ ...p, name: e.target.value }))} placeholder='שם הבנק (למשל "בנק בינלאומי")' style={S.input} />
+                  <input value={newAccount.last4} onChange={e => setNewAccount(p => ({ ...p, last4: e.target.value.slice(0, 4) }))} placeholder="4 ספרות אחרונות של החשבון" maxLength={4} style={S.input} />
+                  <div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>צבע</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {ACCOUNT_COLORS.map(c => (
+                        <div key={c} onClick={() => setNewAccount(p => ({ ...p, color: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: newAccount.color === c ? "3px solid #fff" : "3px solid transparent" }} />
+                      ))}
+                    </div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={addAccount} style={{ ...S.btn, flex: 1 }}>שמור</button>
@@ -260,10 +284,11 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                 </div>
               </div>
             )}
+
             {banks.map(acc => {
               const accTxs = txForAccount(acc.id);
-              const income = accTxs.filter(t => t.type === "income").reduce((s,t) => s+t.amount, 0);
-              const expenses = accTxs.filter(t => t.type === "expense").reduce((s,t) => s+t.amount, 0);
+              const income = accTxs.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+              const expenses = accTxs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
               return (
                 <div key={acc.id} style={{ ...S.card, border: `1px solid ${acc.color}33` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -279,6 +304,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                       <div style={{ fontWeight: 800, fontSize: 18, color: acc.color }}>{fmt(acc.balance)}</div>
                     </div>
                   </div>
+
                   <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                     <div style={{ flex: 1, background: "#00d4aa11", borderRadius: 8, padding: "8px 12px" }}>
                       <div style={{ fontSize: 10, color: "#64748b" }}>הכנסות</div>
@@ -289,6 +315,8 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                       <div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 14 }}>{fmt(expenses)}</div>
                     </div>
                   </div>
+
+                  {/* Import Excel */}
                   <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                     <button onClick={() => editAccount(acc)} style={{ ...S.btnGhost, flex: 1, fontSize: 12 }}>✏️ ערוך</button>
                     <button onClick={() => deleteAccount(acc.id)} style={{ flex: 1, background: "#ff6b6b22", border: "none", borderRadius: 10, padding: 11, color: "#ff6b6b", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>🗑️ מחק</button>
@@ -300,12 +328,14 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                       <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) importExcel(e.target.files[0], acc.id); }} />
                     </label>
                   </div>
+
+                  {/* Recent transactions */}
                   {accTxs.length > 0 && (
                     <div style={{ marginTop: 14 }}>
                       <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>עסקאות אחרונות</div>
-                      {accTxs.slice(0,3).map(t => (
+                      {accTxs.slice(0, 3).map(t => (
                         <div key={t.id} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderTop: "1px solid #142814", fontSize: 12 }}>
-                          <span>{t.desc}</span>
+                          <span style={{ color: "#e2e8f0" }}>{t.desc}</span>
                           <span style={{ fontWeight: 700, color: t.type === "income" ? "#00d4aa" : "#ff6b6b" }}>{t.type === "income" ? "+" : "-"}{fmt(t.amount)}</span>
                         </div>
                       ))}
@@ -316,22 +346,28 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
             })}
           </div>
         )}
+
+        {/* CARDS */}
         {tab === "cards" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>💳 כרטיסי אשראי</h2>
               <button onClick={() => { setNewAccount({ type: "card", name: "", last4: "", color: "#f59e0b" }); setShowAddAccount(true); }} style={S.btn}>+ הוסף כרטיס</button>
             </div>
+
             {showAddAccount && newAccount.type === "card" && (
               <div style={{ ...S.card, border: "1px solid #f59e0b44" }}>
                 <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>כרטיס חדש</div>
                 <div style={{ display: "grid", gap: 10 }}>
-                  <input value={newAccount.name} onChange={e => setNewAccount(p => ({ ...p, name: e.target.value }))} placeholder="שם הכרטיס" style={S.input} />
-                  <input value={newAccount.last4} onChange={e => setNewAccount(p => ({ ...p, last4: e.target.value.slice(0,4) }))} placeholder="4 ספרות אחרונות" maxLength={4} style={S.input} />
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {CARD_COLORS.map(c => (
-                      <div key={c} onClick={() => setNewAccount(p => ({ ...p, color: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: newAccount.color === c ? "3px solid #fff" : "3px solid transparent" }} />
-                    ))}
+                  <input value={newAccount.name} onChange={e => setNewAccount(p => ({ ...p, name: e.target.value }))} placeholder='שם הכרטיס (למשל "ויזה כ.א.ל")' style={S.input} />
+                  <input value={newAccount.last4} onChange={e => setNewAccount(p => ({ ...p, last4: e.target.value.slice(0, 4) }))} placeholder="4 ספרות אחרונות של הכרטיס" maxLength={4} style={S.input} />
+                  <div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>צבע</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {CARD_COLORS.map(c => (
+                        <div key={c} onClick={() => setNewAccount(p => ({ ...p, color: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: newAccount.color === c ? "3px solid #fff" : "3px solid transparent" }} />
+                      ))}
+                    </div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={addAccount} style={{ ...S.btn, flex: 1 }}>שמור</button>
@@ -340,11 +376,13 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                 </div>
               </div>
             )}
+
             {cards.map(acc => {
               const accTxs = txForAccount(acc.id);
-              const total = accTxs.filter(t => t.type === "expense").reduce((s,t) => s+t.amount, 0);
+              const total = accTxs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
               return (
                 <div key={acc.id} style={{ ...S.card, border: `1px solid ${acc.color}33` }}>
+                  {/* Card visual */}
                   <div style={{ background: `linear-gradient(135deg, ${acc.color}33, ${acc.color}11)`, borderRadius: 12, padding: "16px 20px", marginBottom: 14, border: `1px solid ${acc.color}33` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div>
@@ -358,6 +396,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                       <div style={{ fontWeight: 800, fontSize: 22, color: acc.color }}>{fmt(total)}</div>
                     </div>
                   </div>
+
                   <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                     <button onClick={() => editAccount(acc)} style={{ ...S.btnGhost, flex: 1, fontSize: 12 }}>✏️ ערוך</button>
                     <button onClick={() => deleteAccount(acc.id)} style={{ flex: 1, background: "#ff6b6b22", border: "none", borderRadius: 10, padding: 11, color: "#ff6b6b", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>🗑️ מחק</button>
@@ -369,10 +408,11 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                       <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) importExcel(e.target.files[0], acc.id); }} />
                     </label>
                   </div>
+
                   {accTxs.length > 0 && (
                     <div style={{ marginTop: 14 }}>
                       <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>עסקאות אחרונות</div>
-                      {accTxs.slice(0,3).map(t => (
+                      {accTxs.slice(0, 3).map(t => (
                         <div key={t.id} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderTop: "1px solid #142814", fontSize: 12 }}>
                           <span>{t.desc}</span>
                           <span style={{ fontWeight: 700, color: "#ff6b6b" }}>-{fmt(t.amount)}</span>
@@ -385,12 +425,15 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
             })}
           </div>
         )}
+
+        {/* TRANSACTIONS */}
         {tab === "transactions" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>📋 כל העסקאות</h2>
               <button onClick={() => setShowAddTx(true)} style={S.btn}>+ הוסף</button>
             </div>
+
             {showAddTx && (
               <div style={{ ...S.card, border: "1px solid #00d4aa44" }}>
                 <div style={{ display: "grid", gap: 10 }}>
@@ -400,7 +443,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                     <optgroup label="כרטיסי אשראי">{cards.map(a => <option key={a.id} value={a.id}>{a.name} ****{a.last4}</option>)}</optgroup>
                   </select>
                   <div style={{ display: "flex", gap: 8 }}>
-                    {["income","expense"].map(type => (
+                    {["income", "expense"].map(type => (
                       <button key={type} onClick={() => setNewTx(p => ({ ...p, type }))} style={{ flex: 1, padding: 10, border: "2px solid", borderColor: newTx.type === type ? (type === "income" ? "#00d4aa" : "#ff6b6b") : "#1a3a1a", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, fontSize: 13, background: newTx.type === type ? (type === "income" ? "#00d4aa22" : "#ff6b6b22") : "transparent", color: newTx.type === type ? (type === "income" ? "#00d4aa" : "#ff6b6b") : "#94a3b8" }}>
                         {type === "income" ? "💚 הכנסה" : "🔴 הוצאה"}
                       </button>
@@ -419,6 +462,7 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
                 </div>
               </div>
             )}
+
             {transactions.slice().reverse().map(t => {
               const acc = accounts.find(a => a.id === t.accountId);
               return (
@@ -444,16 +488,15 @@ useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); },
           </div>
         )}
       </main>
+
+      {/* AI Chat */}
       {aiOpen && (
         <div style={{ position: "fixed", inset: 0, background: "#000b", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => e.target === e.currentTarget && setAiOpen(false)}>
           <div style={{ background: "#0d1f0d", width: "100%", maxWidth: 600, borderRadius: "20px 20px 0 0", border: "1px solid #1a3a1a", height: "75vh", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "13px 18px", borderBottom: "1px solid #1a3a1a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 20 }}>🤖</span>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>יועץ AI פיננסי</div>
-                  <div style={{ fontSize: 10, color: "#00d4aa" }}>● מחובר לנתונים שלך</div>
-                </div>
+                <div><div style={{ fontWeight: 700, fontSize: 14 }}>יועץ AI פיננסי</div><div style={{ fontSize: 10, color: "#00d4aa" }}>● מחובר לנתונים שלך</div></div>
               </div>
               <button onClick={() => setAiOpen(false)} style={{ background: "#1a3a1a", border: "none", borderRadius: 8, padding: "5px 10px", color: "#94a3b8", cursor: "pointer", fontFamily: "inherit" }}>✕</button>
             </div>
