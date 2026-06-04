@@ -102,22 +102,34 @@ export default function App() {
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
         let imported = 0;
         const newTxs = [];
+        const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
         rows.forEach((row, i) => {
-          if (i === 0) return;
-          const dateVal = row[0]; const desc = row[1] || row[2] || "עסקה";
-          const debit = parseFloat(row[3] || row[4] || 0);
-          const credit = parseFloat(row[4] || row[5] || 0);
-          if (!dateVal && !debit && !credit) return;
-          const amount = debit > 0 ? debit : credit;
+          if (i < 7) return;
+          const dateStr = row[7];
+          const desc = String(row[4] || "עסקה").trim().substring(0, 40);
+          const credit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
+          const debit = parseFloat(String(row[2] || "").replace(/,/g, "")) || 0;
+          const ref = String(row[5] || "");
+          if (!dateStr || (!credit && !debit)) return;
+          const importId = `${dateStr}-${ref}-${credit}-${debit}`;
+          if (existingIds.has(importId)) return;
+          existingIds.add(importId);
+          const amount = credit > 0 ? credit : debit;
           const type = credit > 0 ? "income" : "expense";
+          const dateParts = String(dateStr).split("/");
+          const dateFormatted = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1].padStart(2,"0")}-${dateParts[0].padStart(2,"0")}` : new Date().toISOString().split("T")[0];
           if (amount > 0) {
-            newTxs.push({ id: Date.now() + i, accountId, type, amount, category: "אחר", desc: String(desc).substring(0, 40), date: new Date().toISOString().split("T")[0] });
+            newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category: "אחר", desc, date: dateFormatted });
             imported++;
           }
         });
         setTransactions(prev => [...prev, ...newTxs]);
         setImportMsg(`✅ יובאו ${imported} עסקאות בהצלחה!`);
         setTimeout(() => setImportMsg(""), 4000);
+      } catch(err) { setImportMsg("❌ שגיאה בקריאת הקובץ: " + err.message); setTimeout(() => setImportMsg(""), 5000); }
+    };
+    reader.readAsArrayBuffer(file);
+  };
       } catch { setImportMsg("❌ שגיאה בקריאת הקובץ"); setTimeout(() => setImportMsg(""), 3000); }
     };
     reader.readAsArrayBuffer(file);
