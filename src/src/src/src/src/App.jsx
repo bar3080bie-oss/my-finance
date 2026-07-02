@@ -164,7 +164,7 @@ export default function App() {
             const descCol = isDebit ? 2 : 1;
             const amountCol = isDebit ? 4 : 3;
             const desc = String(row[descCol] || "").trim().substring(0, 40);
-            if (!desc || ["שם בית עסק","שם  העסק","שם העסק","סה"כ"].some(h => desc.includes(h)) || !row[descCol]) return;
+            if (!desc || ["שם בית עסק","שם  העסק","שם העסק","סההכ"].some(h => desc.includes(h)) || !row[descCol]) return;
             const amount = parseFloat(String(row[amountCol] || row[amountCol-1] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
             if (!amount || amount <= 0) return;
             const ענף = String(row[isDebit ? 5 : 5] || "אחר").trim();
@@ -248,7 +248,7 @@ export default function App() {
         rows.forEach((row, i) => {
           if (i < 4) return;
           const desc = String(row[descCol] || "").trim().substring(0, 40);
-          if (!desc || ["שם בית עסק","שם  העסק","שם העסק","סה"כ"].some(h => desc.includes(h)) || !row[descCol]) return;
+          if (!desc || ["שם בית עסק","שם  העסק","שם העסק","סההכ"].some(h => desc.includes(h)) || !row[descCol]) return;
           const amount = parseFloat(String(row[amountCol] || row[amountCol-1] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
           if (!amount || amount <= 0) return;
           const ענף = String(row[5] || "אחר").trim();
