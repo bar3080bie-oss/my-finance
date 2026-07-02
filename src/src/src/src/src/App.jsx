@@ -166,21 +166,26 @@ export default function App() {
             const ענף = String(row[5] || "אחר").trim();
             const catMap = { "מזון ומשקאות": "מזון", "מסעדות": "מסעדות", "אנרגיה": "דלק", "ריהוט ובית": "בית", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "ביטוח", "תקשורת ומחשבים": "תקשורת", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר", "ביגוד והנעלה": "ביגוד", "תכשיטים ואקססוריז": "ביגוד", "טיפוח ויופי": "יופי", "חיות מחמד": "חיות", "ספורט": "ספורט" };
             const smartCat = (desc, ענף) => {
-              const d = desc.toLowerCase();
-              if (/דלק|פז|סונול|דור אלון|פנגו|yellow|אמישרגז/.test(d)) return "דלק";
-              if (/חניה|פארקינג|parking/.test(d)) return "חניה";
-              if (/מכבי|כללית|לאומית|רופא|בית חולים|מאוחדת/.test(d)) return "בריאות";
-              if (/שופרסל|רמי לוי|ויקטורי|מגא|יינות ביתן|סופר|מינימרקט|מזון|מאפייה/.test(d)) return "מזון";
-              if (/סטורנקסט|אמזון|amazon|ali|ebay/.test(d)) return "קניות אונליין";
-              if (/פארם|super pharm|גרין|בית מרקחת/.test(d)) return "בריאות";
-              if (/מסעדה|פיצה|בורגר|קפה|cafe|wolt|10bis|mishloha/.test(d)) return "מסעדות";
-              if (/סלולר|פלאפון|הוט|בזק|yes|בינלאומי|שיחות/.test(d)) return "תקשורת";
-              if (/ספורט|כושר|gym|fitness/.test(d)) return "ספורט";
-              if (/ביטוח|מגדל|הראל|כלל|מנורה|הפניקס/.test(d)) return "ביטוח";
-              if (/netflix|spotify|apple|google|disney|hbo/.test(d)) return "בידור";
-              if (/חינוך|גן|בית ספר|קורס|אוניברסיטה/.test(d)) return "חינוך";
-              if (/זארה|h&m|מנגו|fox|next|קסטרו|רנואר|ביגוד/.test(d)) return "ביגוד";
-              if (/bit|paybox|העברה/.test(d)) return "העברות";
+              const d = (desc || "").toLowerCase();
+              if (/דלק|פז|סונול|דור אלון|פנגו|yellow|אמישרגז|bp |oil /.test(d)) return "דלק";
+              if (/חניה|פארקינג|parking|כביש 6|כביש6/.test(d)) return "תחבורה";
+              if (/מכבי|כללית|לאומית|רופא|בית חולים|מאוחדת|אופטיקה|תרופות/.test(d)) return "בריאות";
+              if (/פארם|super pharm|superpharm|סופר פארם|גרין|בית מרקחת|רוקח/.test(d)) return "בריאות";
+              if (/שופרסל|רמי לוי|ויקטורי|מגא|יינות ביתן|מינימרקט|מאפייה|לחם/.test(d)) return "מזון";
+              if (/wolt|יאנגו|yango|10bis|משלוחא|פיצה|בורגר|מקדונלד|סביח|פלאפל/.test(d)) return "מסעדות";
+              if (/קפה|cafe|coffee|רולדין|ארומה|גרג|קונדיטוריה|איטליאנו|סושי|מסעדה|שניצל|סוויט/.test(d)) return "מסעדות";
+              if (/netflix|spotify|apple.com|google|disney|hbo|youtube|אפל/.test(d)) return "מנויים";
+              if (/פלאפון|הוט|בזק|yes |סלקום|partner|אורנג|גולן|שיחות/.test(d)) return "תקשורת";
+              if (/ביטוח|מגדל|הראל|כלל|מנורה|הפניקס|איי.אי.ג/.test(d)) return "ביטוח";
+              if (/חינוך|גן |בית ספר|קורס|אוניברסיטה|מלכה|לימוד/.test(d)) return "חינוך";
+              if (/זארה|h&m|מנגו|fox|next|קסטרו|רנואר|ביגוד|בגד|עמית שמלה|טרמינל/.test(d)) return "ביגוד";
+              if (/איב רושה|oil de|טיפוח|יופי|שיער|ציפורן|מניקור|פדיקור|קוסמטיקה/.test(d)) return "יופי";
+              if (/ספורט|כושר|gym|fitness|מכבי ספורט/.test(d)) return "ספורט";
+              if (/אמזון|amazon|ali|ebay|shop/.test(d)) return "קניות אונליין";
+              if (/bit|paybox|העברה|ביט/.test(d)) return "העברות";
+              if (/דמי כרטיס|עמלת|עמלה/.test(d)) return "עמלות";
+              if (/תרומה|הידברות|עמותה|צדקה/.test(d)) return "תרומות";
+              if (/הייפ|איקאה|home center|ace|רהיטים|ריהוט/.test(d)) return "בית";
               return catMap[ענף] || "אחר";
             };
             const category = smartCat(desc, ענף);
@@ -241,22 +246,27 @@ export default function App() {
           if (!amount || amount <= 0) return;
           const ענף = String(row[5] || "אחר").trim();
           const smartCat2 = (desc, ענף) => {
-            const catMap2 = { "מזון ומשקאות": "מזון", "מסעדות": "מסעדות", "אנרגיה": "דלק", "ריהוט ובית": "בית", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "ביטוח", "תקשורת ומחשבים": "תקשורת", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר", "ביגוד והנעלה": "ביגוד", "טיפוח ויופי": "יופי", "ספורט": "ספורט" };
             const d = (desc || "").toLowerCase();
-            if (/דלק|פז|סונול|דור אלון|פנגו|yellow|אמישרגז/.test(d)) return "דלק";
-            if (/חניה|פארקינג|parking/.test(d)) return "חניה";
-            if (/מכבי|כללית|לאומית|רופא|בית חולים|מאוחדת/.test(d)) return "בריאות";
-            if (/שופרסל|רמי לוי|ויקטורי|מגא|יינות ביתן|סופר|מינימרקט|מאפייה/.test(d)) return "מזון";
-            if (/אמזון|amazon|ali|ebay/.test(d)) return "קניות אונליין";
-            if (/פארם|super pharm|גרין|בית מרקחת/.test(d)) return "בריאות";
-            if (/מסעדה|פיצה|בורגר|קפה|cafe|wolt|10bis/.test(d)) return "מסעדות";
-            if (/סלולר|פלאפון|הוט|בזק|yes|שיחות/.test(d)) return "תקשורת";
+            if (/דלק|פז|סונול|דור אלון|פנגו|yellow|אמישרגז|bp |oil /.test(d)) return "דלק";
+            if (/חניה|פארקינג|parking|כביש 6|כביש6/.test(d)) return "תחבורה";
+            if (/מכבי|כללית|לאומית|רופא|בית חולים|מאוחדת|אופטיקה|תרופות/.test(d)) return "בריאות";
+            if (/פארם|super pharm|superpharm|סופר פארם|גרין|בית מרקחת/.test(d)) return "בריאות";
+            if (/שופרסל|רמי לוי|ויקטורי|מגא|יינות ביתן|מינימרקט|מאפייה/.test(d)) return "מזון";
+            if (/wolt|יאנגו|yango|10bis|פיצה|בורגר|מקדונלד|סביח|פלאפל/.test(d)) return "מסעדות";
+            if (/קפה|cafe|coffee|רולדין|ארומה|גרג|איטליאנו|סושי|מסעדה|שניצל|סוויט/.test(d)) return "מסעדות";
+            if (/netflix|spotify|apple.com|google|disney|hbo|youtube/.test(d)) return "מנויים";
+            if (/פלאפון|הוט|בזק|yes |סלקום|partner|אורנג|גולן/.test(d)) return "תקשורת";
+            if (/ביטוח|מגדל|הראל|כלל|מנורה|הפניקס|איי.אי.ג/.test(d)) return "ביטוח";
+            if (/חינוך|גן |בית ספר|קורס|אוניברסיטה|מלכה/.test(d)) return "חינוך";
+            if (/זארה|h&m|מנגו|fox|next|קסטרו|עמית שמלה|טרמינל/.test(d)) return "ביגוד";
+            if (/איב רושה|oil de|טיפוח|יופי|שיער|ציפורן|קוסמטיקה/.test(d)) return "יופי";
             if (/ספורט|כושר|gym|fitness/.test(d)) return "ספורט";
-            if (/ביטוח|מגדל|הראל|כלל|מנורה|הפניקס/.test(d)) return "ביטוח";
-            if (/netflix|spotify|apple|google|disney/.test(d)) return "בידור";
-            if (/חינוך|גן|בית ספר|קורס/.test(d)) return "חינוך";
-            if (/זארה|h&m|מנגו|fox|next|קסטרו|ביגוד/.test(d)) return "ביגוד";
-            if (/bit|paybox|העברה/.test(d)) return "העברות";
+            if (/אמזון|amazon|ali|ebay/.test(d)) return "קניות אונליין";
+            if (/bit|paybox|העברה|ביט/.test(d)) return "העברות";
+            if (/דמי כרטיס|עמלת|עמלה/.test(d)) return "עמלות";
+            if (/תרומה|הידברות|עמותה|צדקה/.test(d)) return "תרומות";
+            if (/הייפ|איקאה|home center|ace|ריהוט/.test(d)) return "בית";
+            const catMap2 = { "מזון ומשקאות": "מזון", "מסעדות": "מסעדות", "אנרגיה": "דלק", "ריהוט ובית": "בית", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "ביטוח", "תקשורת ומחשבים": "תקשורת", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר", "ביגוד והנעלה": "ביגוד", "טיפוח ויופי": "יופי", "ספורט": "ספורט" };
             return catMap2[ענף] || "אחר";
           };
           const category = smartCat2(desc, ענף);
@@ -274,9 +284,41 @@ export default function App() {
           newTxs.push({ id: Date.now() + i, importId, accountId, type: "expense", amount, category, desc, date: dateFormatted, billingMonth });
           imported++;
         });
-        setTransactions(prev => [...prev.filter(t => !(t.accountId === accountId && t.billingMonth === billingMonth)), ...newTxs]);
-        setImportMsg("✅ יובאו " + imported + " עסקאות לחודש " + billingMonth);
-        setTimeout(() => setImportMsg(""), 4000);
+        // AI categorization for uncategorized items
+        const uncategorized = newTxs.filter(t => t.category === "אחר");
+        if (uncategorized.length > 0) {
+          setTransactions(prev => [...prev.filter(t => !(t.accountId === accountId && t.billingMonth === billingMonth)), ...newTxs]);
+          setImportMsg("🤖 מסווג " + uncategorized.length + " עסקאות עם AI...");
+          const merchants = [...new Set(uncategorized.map(t => t.desc))];
+          fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1000,
+              system: `סווג כל עסק לקטגוריה אחת מהרשימה: מזון, מסעדות, תחבורה, דלק, חניה, בריאות, ביגוד, יופי, מנויים, תקשורת, ביטוח, חינוך, בית, ספורט, בידור, קניות אונליין, העברות, עמלות, תרומות, אחר. ענה רק ב-JSON: {"שם עסק": "קטגוריה"}`,
+              messages: [{ role: "user", content: "סווג: " + JSON.stringify(merchants) }]
+            })
+          }).then(r => r.json()).then(data => {
+            try {
+              const text = data.content?.[0]?.text || "{}";
+              const clean = text.replace(/```json|```/g, "").trim();
+              const catMap = JSON.parse(clean);
+              setTransactions(prev => prev.map(t => {
+                if (t.accountId === accountId && t.billingMonth === billingMonth && t.category === "אחר" && catMap[t.desc]) {
+                  return { ...t, category: catMap[t.desc] };
+                }
+                return t;
+              }));
+              setImportMsg("✅ יובאו " + imported + " עסקאות — סווגו עם AI!");
+              setTimeout(() => setImportMsg(""), 4000);
+            } catch { setImportMsg("✅ יובאו " + imported + " עסקאות"); setTimeout(() => setImportMsg(""), 4000); }
+          }).catch(() => { setImportMsg("✅ יובאו " + imported + " עסקאות"); setTimeout(() => setImportMsg(""), 4000); });
+        } else {
+          setTransactions(prev => [...prev.filter(t => !(t.accountId === accountId && t.billingMonth === billingMonth)), ...newTxs]);
+          setImportMsg("✅ יובאו " + imported + " עסקאות לחודש " + billingMonth);
+          setTimeout(() => setImportMsg(""), 4000);
+        }
       } catch(err) { setImportMsg("❌ שגיאה: " + err.message); setTimeout(() => setImportMsg(""), 5000); }
     };
     reader.readAsArrayBuffer(file);
