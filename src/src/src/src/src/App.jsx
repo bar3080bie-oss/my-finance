@@ -88,6 +88,9 @@ export default function App() {
   const editAccount = (acc) => {
     setNewAccount({ ...acc });
     setShowAddAccount(true);
+    if (acc.type === "card") {
+      setCardNav({ bankId: acc.bankId || "unlinked", cardId: null, month: null });
+    }
   };
 
   const addTx = () => {
@@ -735,6 +738,23 @@ export default function App() {
       </main>
 
       {/* AI Chat */}
+      {showMonthPicker && (
+        <div style={{ position: "fixed", inset: 0, background: "#0008", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div dir="rtl" style={{ background: "#fff", borderRadius: 16, padding: 24, width: 300, boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>איזה חודש חיוב?</div>
+            <input type="month" value={billingMonthInput} onChange={e => setBillingMonthInput(e.target.value)} style={{ background: "#f5f7f5", border: "1px solid #d0e4d0", borderRadius: 8, padding: "9px 12px", fontSize: 14, fontFamily: "inherit", outline: "none", width: "100%", boxSizing: "border-box", marginBottom: 16 }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => {
+                if (pendingFile) importExcelWithMonth(pendingFile, cardNav.cardId, billingMonthInput);
+                setShowMonthPicker(false);
+                setPendingFile(null);
+              }} style={{ flex: 1, background: "linear-gradient(135deg, #00d4aa, #00b894)", border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>העלה</button>
+              <button onClick={() => { setShowMonthPicker(false); setPendingFile(null); }} style={{ flex: 1, background: "#f0f4f0", border: "1px solid #d0e4d0", borderRadius: 8, padding: "10px", color: "#6b7280", cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {aiOpen && (
         <div style={{ position: "fixed", inset: 0, background: "#000b", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => e.target === e.currentTarget && setAiOpen(false)}>
           <div style={{ background: "#ffffff", width: "100%", maxWidth: 600, borderRadius: "20px 20px 0 0", border: "1px solid #1a3a1a", height: "75vh", display: "flex", flexDirection: "column" }}>
