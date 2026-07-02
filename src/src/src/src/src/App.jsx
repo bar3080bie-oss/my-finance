@@ -66,6 +66,7 @@ export default function App() {
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingTxId, setEditingTxId] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -959,16 +960,32 @@ export default function App() {
                     </div>
                     {sortedCats.map(([cat, amt], i) => (
                       <div key={cat} style={{ marginBottom: 6 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 2, alignItems: "center" }}>
+                        <div onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 2, alignItems: "center", cursor: "pointer", padding: "3px 4px", borderRadius: 6, background: selectedCategory === cat ? pieColors[i % pieColors.length] + "22" : "transparent" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                             <div style={{ width: 9, height: 9, borderRadius: 2, background: pieColors[i % pieColors.length], flexShrink: 0 }} />
                             <span style={{ fontWeight: 500 }}>{cat}</span>
                           </div>
-                          <span style={{ fontWeight: 600, color: "#ff6b6b" }}>{fmt(amt)} <span style={{ color: "#9ca3af", fontSize: 10 }}>({Math.round(amt/monthTotal*100)}%)</span></span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontWeight: 600, color: "#ff6b6b" }}>{fmt(amt)} <span style={{ color: "#9ca3af", fontSize: 10 }}>({Math.round(amt/monthTotal*100)}%)</span></span>
+                            <span style={{ color: "#9ca3af", fontSize: 11 }}>{selectedCategory === cat ? "▲" : "▼"}</span>
+                          </div>
                         </div>
-                        <div style={{ background: "#f0f0f0", borderRadius: 3, height: 4, marginRight: 14 }}>
+                        <div style={{ background: "#f0f0f0", borderRadius: 3, height: 4, marginRight: 14, marginBottom: 4 }}>
                           <div style={{ width: `${Math.round(amt/monthTotal*100)}%`, height: "100%", borderRadius: 3, background: pieColors[i % pieColors.length] }} />
                         </div>
+                        {selectedCategory === cat && (
+                          <div style={{ background: "#f9fafb", borderRadius: 8, padding: "8px 10px", marginBottom: 4, border: `1px solid ${pieColors[i % pieColors.length]}33` }}>
+                            {monthTxs.filter(t => t.category === cat).map(t => (
+                              <div key={t.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "4px 0", borderBottom: "1px solid #f0f0f0" }}>
+                                <div>
+                                  <div style={{ fontWeight: 500 }}>{t.desc}</div>
+                                  <div style={{ color: "#9ca3af", fontSize: 10 }}>{t.date}</div>
+                                </div>
+                                <span style={{ fontWeight: 600, color: "#ff6b6b" }}>-{fmt(t.amount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
