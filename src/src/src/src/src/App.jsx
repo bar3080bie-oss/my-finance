@@ -157,13 +157,17 @@ export default function App() {
               imported++;
             }
           } else {
-            // פורמט כ.א.ל
+            // פורמט כ.א.ל / ישראכארד
             if (i < 4) return;
-            const desc = String(row[1] || "").trim().substring(0, 40);
-            if (!desc || String(desc).trim() === "שם בית עסק" || !row[1]) return;
-            const amount = parseFloat(String(row[3] || row[2] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
+            // זיהוי תת-פורמט: ישראכארד דביט יש 2 עמודות תאריך
+            const isDebit = rows.some(r => r && String(r[0]||"").includes("תאריך עסקה") && String(r[1]||"").includes("תאריך חיוב"));
+            const descCol = isDebit ? 2 : 1;
+            const amountCol = isDebit ? 4 : 3;
+            const desc = String(row[descCol] || "").trim().substring(0, 40);
+            if (!desc || ["שם בית עסק","שם  העסק","שם העסק","סה"כ"].some(h => desc.includes(h)) || !row[descCol]) return;
+            const amount = parseFloat(String(row[amountCol] || row[amountCol-1] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
             if (!amount || amount <= 0) return;
-            const ענף = String(row[5] || "אחר").trim();
+            const ענף = String(row[isDebit ? 5 : 5] || "אחר").trim();
             const catMap = { "מזון ומשקאות": "מזון", "מסעדות": "מסעדות", "אנרגיה": "דלק", "ריהוט ובית": "בית", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "ביטוח", "תקשורת ומחשבים": "תקשורת", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר", "ביגוד והנעלה": "ביגוד", "תכשיטים ואקססוריז": "ביגוד", "טיפוח ויופי": "יופי", "חיות מחמד": "חיות", "ספורט": "ספורט" };
             const smartCat = (desc, ענף) => {
               const d = (desc || "").toLowerCase();
@@ -238,11 +242,14 @@ export default function App() {
         const newTxs = [];
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
         const isKal = rows.some(r => Array.isArray(r) && r[1] && String(r[1]).trim() === "שם בית עסק");
+        const isDebit = rows.some(r => r && String(r[0]||"").includes("תאריך עסקה") && String(r[1]||"").includes("תאריך חיוב"));
+        const descCol = isDebit ? 2 : 1;
+        const amountCol = isDebit ? 4 : 3;
         rows.forEach((row, i) => {
           if (i < 4) return;
-          const desc = String(row[1] || "").trim().substring(0, 40);
-          if (!desc || String(desc).trim() === "שם בית עסק" || !row[1]) return;
-          const amount = parseFloat(String(row[3] || row[2] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
+          const desc = String(row[descCol] || "").trim().substring(0, 40);
+          if (!desc || ["שם בית עסק","שם  העסק","שם העסק","סה"כ"].some(h => desc.includes(h)) || !row[descCol]) return;
+          const amount = parseFloat(String(row[amountCol] || row[amountCol-1] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
           if (!amount || amount <= 0) return;
           const ענף = String(row[5] || "אחר").trim();
           const smartCat2 = (desc, ענף) => {
