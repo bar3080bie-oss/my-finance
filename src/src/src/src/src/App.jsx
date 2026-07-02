@@ -126,7 +126,7 @@ export default function App() {
       try {
         const wb = XLSX.read(e.target.result, { type: "array", cellDates: true, bookVBA: false });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: "dd/mm/yyyy" });
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
         let imported = 0;
         const newTxs = [];
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
@@ -233,7 +233,7 @@ export default function App() {
       try {
         const wb = XLSX.read(e.target.result, { type: "array", cellDates: true, bookVBA: false });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: "dd/mm/yyyy" });
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
         let imported = 0;
         const newTxs = [];
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
@@ -359,6 +359,40 @@ export default function App() {
       } catch(err) { setImportMsg("❌ שגיאה: " + err.message); setTimeout(() => setImportMsg(""), 5000); }
     };
     reader.readAsArrayBuffer(file);
+  };
+
+  const reclassifyAll = async () => {
+    setImportMsg("🤖 מסווג את כל העסקאות עם AI...");
+    const cardTxs = transactions.filter(t => cards.some(c => c.id === t.accountId));
+    const merchants = [...new Set(cardTxs.map(t => t.desc).filter(Boolean))];
+    if (merchants.length === 0) { setImportMsg("אין עסקאות לסיווג"); setTimeout(() => setImportMsg(""), 3000); return; }
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          system: `אתה מסווג הוצאות בישראל. סווג כל עסק לקטגוריה מהרשימה: מזון, מסעדות, תחבורה, דלק, חניה, בריאות, ביגוד, יופי, מנויים, תקשורת, ביטוח, חינוך, בית, ספורט, בידור, קניות אונליין, העברות, עמלות, תרומות, אחר. ענה רק ב-JSON תקני ללא הסברים: {"שם עסק": "קטגוריה"}`,
+          messages: [{ role: "user", content: JSON.stringify(merchants) }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.[0]?.text || "{}";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const catMap = JSON.parse(clean);
+      setTransactions(prev => prev.map(t => {
+        if (cards.some(c => c.id === t.accountId) && catMap[t.desc]) {
+          return { ...t, category: catMap[t.desc] };
+        }
+        return t;
+      }));
+      setImportMsg("✅ כל העסקאות סווגו בהצלחה!");
+      setTimeout(() => setImportMsg(""), 4000);
+    } catch(err) {
+      setImportMsg("❌ שגיאה בסיווג: " + err.message);
+      setTimeout(() => setImportMsg(""), 4000);
+    }
   };
 
   const sendAI = async () => {
@@ -647,7 +681,10 @@ export default function App() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>💳 כרטיסי אשראי</h2>
-                  <button onClick={() => { setNewAccount({ type: "card", name: "", last4: "", color: "#f59e0b", bankId: "" }); setShowAddAccount(true); }} style={S.btn}>+ הוסף כרטיס</button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={reclassifyAll} style={{ ...S.btnSm, background: "#e6faf6", border: "1px solid #00d4aa55", color: "#00b894" }}>🤖 סווג הכל</button>
+                    <button onClick={() => { setNewAccount({ type: "card", name: "", last4: "", color: "#f59e0b", bankId: "" }); setShowAddAccount(true); }} style={S.btn}>+ הוסף כרטיס</button>
+                  </div>
                 </div>
 
                 {showAddAccount && newAccount.type === "card" && (
