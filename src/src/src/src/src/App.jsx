@@ -99,25 +99,54 @@ export default function App() {
         let imported = 0;
         const newTxs = [];
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
+        // זיהוי פורמט
+        const isKal = rows.some(r => Array.isArray(r) && r[1] && String(r[1]).trim() === "שם בית עסק");
+
         rows.forEach((row, i) => {
-          if (i < 7) return;
-          const dateStr = row[8];
-          const desc = String(row[5] || "עסקה").trim().substring(0, 40);
-          const credit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
-          const debit = parseFloat(String(row[4] || "").replace(/,/g, "")) || 0;
-          const ref = String(row[6] || "");
-          if (!dateStr || (!credit && !debit)) return;
-          const importId = `${dateStr}-${ref}-${credit}-${debit}`;
-          if (existingIds.has(importId)) return;
-          existingIds.add(importId);
-          const amount = credit > 0 ? credit : debit;
-          const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות") || desc.includes("ע.החזר");
-          const type = credit > 0 ? "income" : "expense";
-          const category = isCommission ? "עמלות" : "אחר";
-          const dateParts = String(dateStr).split("/");
-          const dateFormatted = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1].padStart(2,"0")}-${dateParts[0].padStart(2,"0")}` : new Date().toISOString().split("T")[0];
-          if (amount > 0) {
-            newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category, desc, date: dateFormatted });
+          if (!isKal) {
+            // פורמט בנק בינלאומי
+            if (i < 7) return;
+            const dateStr = row[8];
+            const desc = String(row[5] || "עסקה").trim().substring(0, 40);
+            const credit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
+            const debit = parseFloat(String(row[4] || "").replace(/,/g, "")) || 0;
+            const ref = String(row[6] || "");
+            if (!dateStr || (!credit && !debit)) return;
+            const importId = dateStr + "-" + ref + "-" + credit + "-" + debit;
+            if (existingIds.has(importId)) return;
+            existingIds.add(importId);
+            const amount = credit > 0 ? credit : debit;
+            const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות");
+            const type = credit > 0 ? "income" : "expense";
+            const category = isCommission ? "עמלות" : "אחר";
+            const dateParts = String(dateStr).split("/");
+            const dateFormatted = dateParts.length === 3 ? dateParts[2] + "-" + dateParts[1].padStart(2,"0") + "-" + dateParts[0].padStart(2,"0") : new Date().toISOString().split("T")[0];
+            if (amount > 0) {
+              newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category, desc, date: dateFormatted });
+              imported++;
+            }
+          } else {
+            // פורמט כ.א.ל
+            if (i < 4) return;
+            const desc = String(row[1] || "").trim().substring(0, 40);
+            if (!desc || String(desc).trim() === "שם בית עסק" || !row[1]) return;
+            const amount = parseFloat(String(row[3] || row[2] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
+            if (!amount || amount <= 0) return;
+            const ענף = String(row[5] || "אחר").trim();
+            const catMap = { "מזון ומשקאות": "מזון", "מסעדות": "מזון", "אנרגיה": "תחבורה", "ריהוט ובית": "קניות", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "אחר", "תקשורת ומחשבים": "אחר", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר" };
+            const category = catMap[ענף] || "קניות";
+            const dateRaw = row[0];
+            let dateFormatted = new Date().toISOString().split("T")[0];
+            if (dateRaw instanceof Date) {
+              dateFormatted = dateRaw.getFullYear() + "-" + String(dateRaw.getMonth()+1).padStart(2,"0") + "-" + String(dateRaw.getDate()).padStart(2,"0");
+            } else if (typeof dateRaw === "number" && dateRaw > 40000) {
+              const d = new Date((dateRaw - 25569) * 86400 * 1000);
+              dateFormatted = d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
+            }
+            const importId = "kal-" + dateFormatted + "-" + desc + "-" + amount;
+            if (existingIds.has(importId)) return;
+            existingIds.add(importId);
+            newTxs.push({ id: Date.now() + i, importId, accountId, type: "expense", amount, category, desc, date: dateFormatted });
             imported++;
           }
         });
