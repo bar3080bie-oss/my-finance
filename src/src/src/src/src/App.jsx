@@ -1008,12 +1008,22 @@ export default function App() {
                       </div>
                     </div>
                     {editingTxId === t.id ? (
-                      <select value={t.category} onChange={e => { setTransactions(prev => prev.map(tx => tx.id === t.id ? { ...tx, category: e.target.value } : tx)); }} style={{ ...S.select, marginTop: 4, fontSize: 11, width: "100%" }}>
-                        {EXPENSE_CATS.map(c => <option key={c}>{c}</option>)}
-                      </select>
+                      <div style={{ marginTop: 6, display: "grid", gap: 6 }}>
+                        <input
+                          defaultValue={t.note || ""}
+                          placeholder="פירוט (למי / על מה)"
+                          onChange={e => setTransactions(prev => prev.map(tx => tx.id === t.id ? { ...tx, note: e.target.value } : tx))}
+                          style={{ ...S.input, fontSize: 12, padding: "5px 10px" }}
+                        />
+                        <select value={t.category} onChange={e => { setTransactions(prev => prev.map(tx => tx.id === t.id ? { ...tx, category: e.target.value } : tx)); }} style={{ ...S.select, fontSize: 11, width: "100%" }}>
+                          {EXPENSE_CATS.map(c => <option key={c}>{c}</option>)}
+                        </select>
+                        <button onClick={() => setEditingTxId(null)} style={{ ...S.btnSm, fontSize: 11 }}>✓ שמור</button>
+                      </div>
                     ) : (
-                      <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
+                      <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2, display: "flex", gap: 6, alignItems: "center" }}>
                         <span style={{ background: "#f0f5f0", borderRadius: 4, padding: "1px 6px" }}>{t.category}</span>
+                        {t.note && <span style={{ color: "#6b7280", fontStyle: "italic" }}>{t.note}</span>}
                       </div>
                     )}
                   </div>
