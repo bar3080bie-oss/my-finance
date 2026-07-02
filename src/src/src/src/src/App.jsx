@@ -54,8 +54,9 @@ export default function App() {
 
   const banks = accounts.filter(a => a.type === "bank");
   const cards = accounts.filter(a => a.type === "card");
-  const totalIncome = transactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const totalExpenses = transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const bankIds = new Set(accounts.filter(a => a.type === "bank").map(a => a.id));
+  const totalIncome = transactions.filter(t => t.type === "income" && bankIds.has(t.accountId)).reduce((s, t) => s + t.amount, 0);
+  const totalExpenses = transactions.filter(t => t.type === "expense" && bankIds.has(t.accountId)).reduce((s, t) => s + t.amount, 0);
   const balance = totalIncome - totalExpenses;
   const expByCat = transactions.filter(t => t.type === "expense").reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + t.amount; return acc; }, {});
 
