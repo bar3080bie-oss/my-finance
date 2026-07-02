@@ -50,6 +50,12 @@ export default function App() {
   const [pendingFile, setPendingFile] = useState(null);
   const [billingMonthInput, setBillingMonthInput] = useState(new Date().toISOString().substring(0,7));
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [loans, setLoans] = useState(() => {
+    try { const s = localStorage.getItem("mf_loans"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [showAddLoan, setShowAddLoan] = useState(false);
+  const [newLoan, setNewLoan] = useState({ name: "", type: "הלוואה אישית", bankId: "", amount: "", remaining: "", monthly: "", rate: "", startDate: "", endDate: "" });
+  const [selectedLoan, setSelectedLoan] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const chatEndRef = useRef(null);
@@ -58,6 +64,7 @@ export default function App() {
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages]);
   useEffect(() => { try { localStorage.setItem("mf_accounts", JSON.stringify(accounts)); } catch {} }, [accounts]);
   useEffect(() => { try { localStorage.setItem("mf_transactions", JSON.stringify(transactions)); } catch {} }, [transactions]);
+  useEffect(() => { try { localStorage.setItem("mf_loans", JSON.stringify(loans)); } catch {} }, [loans]);
 
   const banks = accounts.filter(a => a.type === "bank");
   const cards = accounts.filter(a => a.type === "card");
@@ -229,6 +236,43 @@ export default function App() {
     reader.readAsArrayBuffer(file);
   };
 
+  const importLoanSchedule = (file, loanId) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        const schedule = [];
+        let headerRow = -1;
+        // Find header row
+        for (let i = 0; i < rows.length; i++) {
+          if (rows[i] && rows[i].some(c => String(c || "").includes("מספר תשלום"))) {
+            headerRow = i;
+            break;
+          }
+        }
+        if (headerRow === -1) { setImportMsg("❌ לא נמצאה שורת כותרות"); setTimeout(() => setImportMsg(""), 4000); return; }
+        for (let i = headerRow + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || !row[1]) continue;
+          const num = row[1];
+          const date = String(row[2] || "");
+          const principal = parseFloat(row[3]) || 0;
+          const interest = parseFloat(row[4]) || 0;
+          const total = parseFloat(row[5]) || 0;
+          const balance = parseFloat(row[6]) || 0;
+          if (!num || !total) continue;
+          schedule.push({ month: num, date, principal: Math.round(principal), interest: Math.round(interest), payment: Math.round(total), balance: Math.round(balance) });
+        }
+        setLoans(prev => prev.map(l => l.id === loanId ? { ...l, schedule, remaining: schedule[0]?.balance + schedule[0]?.principal || l.remaining, monthly: schedule[0]?.payment || l.monthly } : l));
+        setImportMsg("✅ לוח סילוקין עם " + schedule.length + " תשלומים עלה בהצלחה!");
+        setTimeout(() => setImportMsg(""), 4000);
+      } catch(err) { setImportMsg("❌ שגיאה: " + err.message); setTimeout(() => setImportMsg(""), 5000); }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const sendAI = async () => {
     if (!aiInput.trim() || aiLoading) return;
     const msg = aiInput.trim(); setAiInput("");
@@ -282,7 +326,7 @@ export default function App() {
 
       {/* Tabs */}
       <nav style={{ display: "flex", background: "#f0f5f0", borderBottom: "1px solid #1a3a1a", overflowX: "auto" }}>
-        {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }, { id: "monthly", label: "חודשי", icon: "📅" }].map(t => (
+        {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }, { id: "loans", label: "הלוואות", icon: "🏧" }, { id: "monthly", label: "חודשי", icon: "📅" }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "12px 16px", border: "none", cursor: "pointer", background: "transparent", color: tab === t.id ? "#00d4aa" : "#6b7280", borderBottom: tab === t.id ? "2px solid #00d4aa" : "2px solid transparent", fontWeight: tab === t.id ? 700 : 400, fontSize: 12, whiteSpace: "nowrap", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
             {t.icon} {t.label}
           </button>
@@ -729,7 +773,211 @@ export default function App() {
           );
         })()}
 
-                {/* TRANSACTIONS */}
+        {/* LOANS */}
+        {tab === "loans" && (() => {
+          const loanTypes = ["משכנתא", "הלוואת רכב", "הלוואה אישית", "הלוואת מקום עבודה", "הלוואת גמח", "קרן השתלמות", "אחר"];
+
+          const addLoan = () => {
+            if (!newLoan.name || !newLoan.amount) return;
+            const loan = { ...newLoan, id: "loan" + Date.now(), amount: Number(newLoan.amount), remaining: Number(newLoan.remaining || newLoan.amount), monthly: Number(newLoan.monthly || 0), rate: Number(newLoan.rate || 0) };
+            setLoans(prev => [...prev, loan]);
+            setNewLoan({ name: "", type: "הלוואה אישית", bankId: "", amount: "", remaining: "", monthly: "", rate: "", startDate: "", endDate: "" });
+            setShowAddLoan(false);
+          };
+
+          const deleteLoan = (id) => {
+            if (window.confirm("למחוק הלוואה זו?")) setLoans(prev => prev.filter(l => l.id !== id));
+          };
+
+          const calcAmortization = (loan) => {
+            if (!loan.monthly || !loan.rate || !loan.remaining) return [];
+            const monthlyRate = loan.rate / 100 / 12;
+            let balance = loan.remaining;
+            const rows = [];
+            let month = 1;
+            while (balance > 0.5 && month <= 360) {
+              const interest = balance * monthlyRate;
+              const principal = Math.min(loan.monthly - interest, balance);
+              if (principal <= 0) break;
+              balance = Math.max(0, balance - principal);
+              rows.push({ month, payment: loan.monthly, interest: Math.round(interest), principal: Math.round(principal), balance: Math.round(balance) });
+              month++;
+            }
+            return rows;
+          };
+
+          if (selectedLoan) {
+            const loan = loans.find(l => l.id === selectedLoan);
+            if (!loan) { setSelectedLoan(null); return null; }
+            const schedule = calcAmortization(loan);
+            const totalPaid = loan.amount - loan.remaining;
+            const paidPct = Math.round((totalPaid / loan.amount) * 100);
+            const linkedBank = banks.find(b => b.id === loan.bankId);
+            const totalInterest = schedule.reduce((s,r) => s + r.interest, 0);
+
+            return (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                  <button onClick={() => setSelectedLoan(null)} style={{ ...S.btnSm, fontSize: 14 }}>&#8249;</button>
+                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>{loan.name}</h2>
+                </div>
+                <div style={{ ...S.card, background: "linear-gradient(135deg, #f59e0b15, #f59e0b05)", border: "2px solid #f59e0b44", marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: "#9ca3af" }}>{loan.type}</div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: "#f59e0b" }}>{fmt(loan.remaining)}</div>
+                      <div style={{ fontSize: 11, color: "#9ca3af" }}>נותר לתשלום</div>
+                    </div>
+                    <div style={{ textAlign: "left" }}>
+                      <div style={{ fontSize: 11, color: "#9ca3af" }}>סכום מקורי</div>
+                      <div style={{ fontSize: 18, fontWeight: 700 }}>{fmt(loan.amount)}</div>
+                      {linkedBank && <div style={{ fontSize: 11, color: "#00b894", marginTop: 4 }}>🏦 {linkedBank.name} ****{linkedBank.last4}</div>}
+                    </div>
+                  </div>
+                  <div style={{ background: "#f0f0f0", borderRadius: 6, height: 10, marginBottom: 8 }}>
+                    <div style={{ width: paidPct + "%", height: "100%", borderRadius: 6, background: "linear-gradient(90deg, #00b894, #00d4aa)" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af", marginBottom: 12 }}>
+                    <span>שולם {fmt(totalPaid)} ({paidPct}%)</span>
+                    <span>ריבית {loan.rate}%</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <div style={{ flex: 1, background: "#fff", borderRadius: 8, padding: "8px 12px" }}>
+                      <div style={{ fontSize: 10, color: "#9ca3af" }}>חודשי</div>
+                      <div style={{ fontWeight: 700, color: "#f59e0b" }}>{fmt(loan.monthly)}</div>
+                    </div>
+                    <div style={{ flex: 1, background: "#fff", borderRadius: 8, padding: "8px 12px" }}>
+                      <div style={{ fontSize: 10, color: "#9ca3af" }}>סה"כ ריבית</div>
+                      <div style={{ fontWeight: 700, color: "#ff6b6b" }}>{fmt(totalInterest)}</div>
+                    </div>
+                    <div style={{ flex: 1, background: "#fff", borderRadius: 8, padding: "8px 12px" }}>
+                      <div style={{ fontSize: 10, color: "#9ca3af" }}>תשלומים</div>
+                      <div style={{ fontWeight: 700 }}>{schedule.length}</div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ ...S.btn, cursor: "pointer", display: "inline-block" }}>
+                    📂 העלי לוח סילוקין מ-Excel
+                    <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) importLoanSchedule(e.target.files[0], loan.id); }} />
+                  </label>
+                </div>
+
+                {(schedule.length > 0 || (loan.schedule && loan.schedule.length > 0)) && (() => {
+                  const displaySchedule = loan.schedule && loan.schedule.length > 0 ? loan.schedule : schedule;
+                  return (
+                  <div style={S.card}>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>📋 לוח סילוקין</div>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ background: "#f5f7f5" }}>
+                            {["#", "תשלום", "ריבית", "קרן", "יתרה"].map(h => (
+                              <th key={h} style={{ padding: "8px 6px", textAlign: "right", fontWeight: 600, color: "#6b7280", borderBottom: "1px solid #e0ece0" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {displaySchedule.slice(0, 24).map(row => (
+                            <tr key={row.month} style={{ borderBottom: "1px solid #f0f5f0" }}>
+                              <td style={{ padding: "7px 6px", color: "#9ca3af" }}>{row.month}</td>
+                              <td style={{ padding: "7px 6px", fontWeight: 600 }}>{fmt(row.payment)}</td>
+                              <td style={{ padding: "7px 6px", color: "#ff6b6b" }}>{fmt(row.interest)}</td>
+                              <td style={{ padding: "7px 6px", color: "#00b894" }}>{fmt(row.principal)}</td>
+                              <td style={{ padding: "7px 6px", fontWeight: 600 }}>{fmt(row.balance)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {displaySchedule.length > 24 && <div style={{ textAlign: "center", padding: 10, fontSize: 12, color: "#9ca3af" }}>מוצגים 24 מתוך {displaySchedule.length} תשלומים</div>}
+                    </div>
+                  </div>
+                  );
+                })()}
+              </div>
+            );
+          }
+
+          return (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>🏧 הלוואות</h2>
+                <button onClick={() => setShowAddLoan(true)} style={S.btn}>+ הוסף הלוואה</button>
+              </div>
+              {showAddLoan && (
+                <div style={{ ...S.card, border: "1px solid #f59e0b44", marginBottom: 16 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 12 }}>הלוואה חדשה</div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <input value={newLoan.name} onChange={e => setNewLoan(p => ({ ...p, name: e.target.value }))} placeholder="שם ההלוואה" style={S.input} />
+                    <select value={newLoan.type} onChange={e => setNewLoan(p => ({ ...p, type: e.target.value }))} style={S.input}>
+                      {loanTypes.map(t => <option key={t}>{t}</option>)}
+                    </select>
+                    <select value={newLoan.bankId || ""} onChange={e => setNewLoan(p => ({ ...p, bankId: e.target.value }))} style={S.input}>
+                      <option value="">בחר חשבון בנק משויך</option>
+                      {banks.map(b => <option key={b.id} value={b.id}>{b.name} ****{b.last4}</option>)}
+                    </select>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <input value={newLoan.amount} onChange={e => setNewLoan(p => ({ ...p, amount: e.target.value }))} placeholder="סכום מקורי (₪)" type="number" style={S.input} />
+                      <input value={newLoan.remaining} onChange={e => setNewLoan(p => ({ ...p, remaining: e.target.value }))} placeholder="יתרה נוכחית (₪)" type="number" style={S.input} />
+                      <input value={newLoan.monthly} onChange={e => setNewLoan(p => ({ ...p, monthly: e.target.value }))} placeholder="תשלום חודשי (₪)" type="number" style={S.input} />
+                      <input value={newLoan.rate} onChange={e => setNewLoan(p => ({ ...p, rate: e.target.value }))} placeholder="ריבית שנתית (%)" type="number" step="0.1" style={S.input} />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>תאריך התחלה</div><input value={newLoan.startDate} onChange={e => setNewLoan(p => ({ ...p, startDate: e.target.value }))} type="date" style={S.input} /></div>
+                      <div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>תאריך סיום</div><input value={newLoan.endDate} onChange={e => setNewLoan(p => ({ ...p, endDate: e.target.value }))} type="date" style={S.input} /></div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={addLoan} style={{ ...S.btn, flex: 1 }}>שמור</button>
+                      <button onClick={() => setShowAddLoan(false)} style={{ ...S.btnGhost, flex: 1 }}>ביטול</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {loans.length > 0 && (
+                <div style={{ ...S.card, background: "linear-gradient(135deg, #f59e0b15, #f59e0b05)", border: "1px solid #f59e0b33", marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>סה"כ חוב</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#f59e0b" }}>{fmt(loans.reduce((s,l) => s + l.remaining, 0))}</div>
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>תשלום חודשי כולל: {fmt(loans.reduce((s,l) => s + l.monthly, 0))}</div>
+                </div>
+              )}
+              {loans.length === 0 && !showAddLoan && (
+                <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🏧</div>
+                  <div>אין הלוואות — לחצי + הוסף הלוואה</div>
+                </div>
+              )}
+              {loans.map(loan => {
+                const paidPct = Math.round(((loan.amount - loan.remaining) / loan.amount) * 100);
+                const linkedBank = banks.find(b => b.id === loan.bankId);
+                return (
+                  <div key={loan.id} onClick={() => setSelectedLoan(loan.id)} style={{ ...S.card, cursor: "pointer", border: "1px solid #f59e0b33" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{loan.name}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{loan.type}{linkedBank ? " · " + linkedBank.name + " ****" + linkedBank.last4 : ""}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <button onClick={e => { e.stopPropagation(); deleteLoan(loan.id); }} style={S.btnDanger}>🗑️</button>
+                        <span style={{ fontWeight: 800, color: "#f59e0b", fontSize: 16 }}>{fmt(loan.remaining)}</span>
+                        <span style={{ color: "#9ca3af" }}>›</span>
+                      </div>
+                    </div>
+                    <div style={{ background: "#f0f0f0", borderRadius: 4, height: 6, marginBottom: 6 }}>
+                      <div style={{ width: paidPct + "%", height: "100%", borderRadius: 4, background: "linear-gradient(90deg, #00b894, #00d4aa)" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9ca3af" }}>
+                      <span>שולם {paidPct}%</span>
+                      <span>חודשי: {fmt(loan.monthly)}</span>
+                      <span>ריבית: {loan.rate}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+                        {/* TRANSACTIONS */}
         {tab === "transactions" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
