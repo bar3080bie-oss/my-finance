@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 
 const fmt = (n) => new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n || 0);
 
-const EXPENSE_CATS = ["דיור", "מזון", "תחבורה", "בידור", "בריאות", "חינוך", "קניות", "עמלות", "אחר"];
+const EXPENSE_CATS = ["דיור", "מזון", "מסעדות", "תחבורה", "דלק", "חניה", "בידור", "בריאות", "חינוך", "ביגוד", "יופי", "מנויים", "תקשורת", "ביטוח", "בית", "ספורט", "קניות אונליין", "העברות", "עמלות", "הוצאות עסק", "ארנונה ומסים", "תרומות", "מתנות", "אחר"];
 const INCOME_CATS = ["משכורת", "פרילנס", "השקעות", "שכירות", "אחר"];
 
 const ACCOUNT_COLORS = ["#00d4aa", "#44cc88", "#0099ff", "#f59e0b", "#a78bfa", "#fb7185"];
@@ -65,6 +65,7 @@ export default function App() {
   const [newLoan, setNewLoan] = useState({ name: "", type: "הלוואה אישית", bankId: "", amount: "", remaining: "", monthly: "", rate: "", startDate: "", endDate: "" });
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingTxId, setEditingTxId] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -163,7 +164,11 @@ export default function App() {
             const isDebit = rows.some(r => r && String(r[0]||"").includes("תאריך עסקה") && String(r[1]||"").includes("תאריך חיוב"));
             const descCol = isDebit ? 2 : 1;
             const amountCol = isDebit ? 4 : 3;
-            const desc = String(row[descCol] || "").trim().substring(0, 40);
+            const desc = (() => {
+              const main = String(row[descCol] || "").trim().substring(0, 30);
+              const detail = isDebit ? String(row[5] || "").trim() : "";
+              return detail ? main + " — " + detail : main;
+            })();
             if (!desc || ["שם בית עסק","שם  העסק","שם העסק","סההכ"].some(h => desc.includes(h)) || !row[descCol]) return;
             const amount = parseFloat(String(row[amountCol] || row[amountCol-1] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
             if (!amount || amount <= 0) return;
@@ -957,12 +962,26 @@ export default function App() {
               <div style={S.card}>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>פירוט עסקאות</div>
                 {monthTxs.map(t => (
-                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: "1px solid #f0f5f0" }}>
-                    <div>
-                      <div style={{ fontWeight: 500, fontSize: 13 }}>{t.desc}</div>
-                      <div style={{ fontSize: 10, color: "#9ca3af" }}>{t.date} · {t.category}</div>
+                  <div key={t.id} style={{ padding: "8px 0", borderTop: "1px solid #f0f5f0" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500, fontSize: 13 }}>{t.desc}</div>
+                        <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{t.date}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 14 }}>-{fmt(t.amount)}</span>
+                        <button onClick={() => setEditingTxId(editingTxId === t.id ? null : t.id)} style={{ background: "none", border: "1px solid #e0ece0", borderRadius: 5, padding: "2px 6px", fontSize: 10, cursor: "pointer", color: "#6b7280" }}>✏️</button>
+                      </div>
                     </div>
-                    <span style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 14 }}>-{fmt(t.amount)}</span>
+                    {editingTxId === t.id ? (
+                      <select value={t.category} onChange={e => { setTransactions(prev => prev.map(tx => tx.id === t.id ? { ...tx, category: e.target.value } : tx)); }} style={{ ...S.select, marginTop: 4, fontSize: 11, width: "100%" }}>
+                        {EXPENSE_CATS.map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    ) : (
+                      <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
+                        <span style={{ background: "#f0f5f0", borderRadius: 4, padding: "1px 6px" }}>{t.category}</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
