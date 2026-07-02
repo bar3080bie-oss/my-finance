@@ -36,7 +36,7 @@ export default function App() {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [showAddTx, setShowAddTx] = useState(false);
-  const [newAccount, setNewAccount] = useState({ type: "bank", name: "", last4: "", color: "#00d4aa" });
+  const [newAccount, setNewAccount] = useState({ type: "bank", name: "", last4: "", color: "#00d4aa", bankId: "" });
   const [newTx, setNewTx] = useState({ accountId: "", type: "expense", amount: "", category: "מזון", desc: "", date: new Date().toISOString().split("T")[0] });
   const [aiOpen, setAiOpen] = useState(false);
   const [aiMessages, setAiMessages] = useState([{ role: "assistant", content: "שלום! אני היועץ הפיננסי שלך 🤖\nשאלי אותי כל שאלה על המצב הפיננסי שלך." }]);
@@ -44,7 +44,8 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [importMsg, setImportMsg] = useState("");
   const [selectedBankMonth, setSelectedBankMonth] = useState("all");
-  const [selectedCardMonth, setSelectedCardMonth] = useState("all");
+  const [selectedCardMonths, setSelectedCardMonths] = useState({});
+  const setCardMonth = (cardId, month) => setSelectedCardMonths(prev => ({ ...prev, [cardId]: month }));
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -420,41 +421,27 @@ export default function App() {
         )}
 
         {/* CARDS */}
-        {tab === "cards" && (() => {
-          const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
-          const allCardMonths = [...new Set(transactions.filter(t => cards.some(c => c.id === t.accountId)).map(t => t.date ? t.date.substring(0,7) : null).filter(Boolean))].sort().reverse();
-          return (
+        {tab === "cards" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>💳 כרטיסי אשראי</h2>
-              <button onClick={() => { setNewAccount({ type: "card", name: "", last4: "", color: "#f59e0b" }); setShowAddAccount(true); }} style={S.btn}>+ הוסף כרטיס</button>
+              <button onClick={() => { setNewAccount({ type: "card", name: "", last4: "", color: "#f59e0b", bankId: "" }); setShowAddAccount(true); }} style={S.btn}>+ הוסף כרטיס</button>
             </div>
-            {allCardMonths.length > 0 && (
-              <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "#6b7280" }}>סינון לפי חודש:</span>
-                <select value={selectedCardMonth} onChange={e => setSelectedCardMonth(e.target.value)} style={S.select}>
-                  <option value="all">כל החודשים</option>
-                  {allCardMonths.map(m => {
-                    const [y, mo] = m.split("-");
-                    return <option key={m} value={m}>{monthNames[parseInt(mo)-1]} {y}</option>;
-                  })}
-                </select>
-              </div>
-            )}
 
             {showAddAccount && newAccount.type === "card" && (
               <div style={{ ...S.card, border: "1px solid #f59e0b44" }}>
                 <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>כרטיס חדש</div>
                 <div style={{ display: "grid", gap: 10 }}>
                   <input value={newAccount.name} onChange={e => setNewAccount(p => ({ ...p, name: e.target.value }))} placeholder='שם הכרטיס (למשל "ויזה כ.א.ל")' style={S.input} />
-                  <input value={newAccount.last4} onChange={e => setNewAccount(p => ({ ...p, last4: e.target.value.slice(0, 4) }))} placeholder="4 ספרות אחרונות של הכרטיס" maxLength={4} style={S.input} />
-                  <div>
-                    <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>צבע</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {CARD_COLORS.map(c => (
-                        <div key={c} onClick={() => setNewAccount(p => ({ ...p, color: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: newAccount.color === c ? "3px solid #fff" : "3px solid transparent" }} />
-                      ))}
-                    </div>
+                  <input value={newAccount.last4} onChange={e => setNewAccount(p => ({ ...p, last4: e.target.value.slice(0,4) }))} placeholder="4 ספרות אחרונות" maxLength={4} style={S.input} />
+                  <select value={newAccount.bankId || ""} onChange={e => setNewAccount(p => ({ ...p, bankId: e.target.value }))} style={S.input}>
+                    <option value="">בחר חשבון בנק משויך (אופציונלי)</option>
+                    {banks.map(b => <option key={b.id} value={b.id}>{b.name} ****{b.last4}</option>)}
+                  </select>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {CARD_COLORS.map(c => (
+                      <div key={c} onClick={() => setNewAccount(p => ({ ...p, color: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: newAccount.color === c ? "3px solid #333" : "3px solid transparent" }} />
+                    ))}
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={addAccount} style={{ ...S.btn, flex: 1 }}>שמור</button>
@@ -465,94 +452,95 @@ export default function App() {
             )}
 
             {cards.map(acc => {
-              const accTxs = txForAccount(acc.id);
-              const total = accTxs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+              const accTxs = transactions.filter(t => t.accountId === acc.id && t.type === "expense");
+              const allMonths = [...new Set(accTxs.map(t => t.date ? t.date.substring(0,7) : null).filter(Boolean))].sort().reverse();
+              const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+              const selectedMonth = selectedCardMonths[acc.id] || "all";
+              const filteredTxs = selectedMonth === "all" ? accTxs : accTxs.filter(t => t.date && t.date.startsWith(selectedMonth));
+              const total = filteredTxs.reduce((s,t) => s+t.amount, 0);
+              const catBreakdown = filteredTxs.reduce((acc2, t) => { acc2[t.category] = (acc2[t.category]||0) + t.amount; return acc2; }, {});
+              const linkedBank = acc.bankId ? banks.find(b => b.id === acc.bankId) : null;
+
               return (
-                <div key={acc.id} style={{ ...S.card, border: `1px solid ${acc.color}33` }}>
-                  {/* Card visual */}
-                  <div style={{ background: `linear-gradient(135deg, ${acc.color}33, ${acc.color}11)`, borderRadius: 12, padding: "16px 20px", marginBottom: 14, border: `1px solid ${acc.color}33` }}>
+                <div key={acc.id} style={{ ...S.card, border: `1px solid ${acc.color}44` }}>
+                  {/* Card header */}
+                  <div style={{ background: `linear-gradient(135deg, ${acc.color}22, ${acc.color}08)`, borderRadius: 12, padding: "14px 16px", marginBottom: 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div>
-                        <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 4 }}>{acc.name}</div>
-                        <div style={{ fontSize: 18, letterSpacing: 4, fontWeight: 700 }}>**** **** **** {acc.last4}</div>
+                        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 2 }}>{acc.name}</div>
+                        {linkedBank && <div style={{ fontSize: 10, color: acc.color }}>🏦 {linkedBank.name} ****{linkedBank.last4}</div>}
+                        <div style={{ fontSize: 16, letterSpacing: 3, fontWeight: 700, marginTop: 4 }}>**** **** **** {acc.last4}</div>
                       </div>
-                      <div style={{ fontSize: 22 }}>💳</div>
-                    </div>
-                    <div style={{ marginTop: 14 }}>
-                      <div style={{ fontSize: 10, color: "#9ca3af" }}>חיוב החודש</div>
-                      <div style={{ fontWeight: 800, fontSize: 22, color: acc.color }}>{fmt(total)}</div>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{selectedMonth === "all" ? "סה"כ" : monthNames[parseInt(selectedMonth.split("-")[1])-1]}</div>
+                        <div style={{ fontWeight: 900, fontSize: 22, color: acc.color }}>{fmt(total)}</div>
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  {/* Month filter */}
+                  {allMonths.length > 0 && (
+                    <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 11, color: "#6b7280" }}>חודש:</span>
+                      <select value={selectedMonth} onChange={e => setCardMonth(acc.id, e.target.value)} style={S.select}>
+                        <option value="all">כל החודשים</option>
+                        {allMonths.map(m => {
+                          const [y, mo] = m.split("-");
+                          return <option key={m} value={m}>{monthNames[parseInt(mo)-1]} {y}</option>;
+                        })}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Category breakdown */}
+                  {Object.keys(catBreakdown).length > 0 && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>פילוח לפי קטגוריה</div>
+                      {Object.entries(catBreakdown).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => (
+                        <div key={cat} style={{ marginBottom: 6 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 2 }}>
+                            <span>{cat}</span>
+                            <span style={{ fontWeight: 600, color: "#ff6b6b" }}>{fmt(amt)} ({Math.round(amt/total*100)}%)</span>
+                          </div>
+                          <div style={{ background: "#f0f0f0", borderRadius: 4, height: 5 }}>
+                            <div style={{ width: `${Math.round(amt/total*100)}%`, height: "100%", borderRadius: 4, background: acc.color }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
                     <button onClick={() => editAccount(acc)} style={S.btnSm}>✏️ ערוך</button>
                     <button onClick={() => deleteAccount(acc.id)} style={S.btnDanger}>🗑️ מחק</button>
                     <button onClick={() => { setNewTx(p => ({ ...p, accountId: acc.id, type: "expense" })); setShowAddTx(true); }} style={S.btnSm}>+ עסקה</button>
                     <label style={{ ...S.btnSm, cursor: "pointer" }}>📂 Excel<input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) importExcel(e.target.files[0], acc.id); }} /></label>
                   </div>
 
-                  {accTxs.length > 0 && (
-                    <div style={{ marginTop: 14 }}>
-                      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>עסקאות אחרונות</div>
-                      {accTxs.slice(0, 3).map(t => (
-                        <div key={t.id} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderTop: "1px solid #142814", fontSize: 12 }}>
-                          <span>{t.desc}</span>
+                  {/* Transactions list */}
+                  {filteredTxs.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 6, fontWeight: 600 }}>פירוט עסקאות</div>
+                      {filteredTxs.slice(0,10).map(t => (
+                        <div key={t.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid #f0f5f0", fontSize: 12 }}>
+                          <div>
+                            <div style={{ fontWeight: 500 }}>{t.desc}</div>
+                            <div style={{ fontSize: 10, color: "#9ca3af" }}>{t.date} · {t.category}</div>
+                          </div>
                           <span style={{ fontWeight: 700, color: "#ff6b6b" }}>-{fmt(t.amount)}</span>
                         </div>
                       ))}
+                      {filteredTxs.length > 10 && <div style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", paddingTop: 6 }}>ועוד {filteredTxs.length - 10} עסקאות...</div>}
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-          );
-        })()}
+        )}
 
-
-        {/* MONTHLY */}
-        {tab === "monthly" && (() => {
-          const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
-          const monthlyData = {};
-          transactions.forEach(t => {
-            if (!t.date) return;
-            const d = new Date(t.date);
-            const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-            if (!monthlyData[key]) monthlyData[key] = { income: 0, expense: 0, month: d.getMonth(), year: d.getFullYear() };
-            if (t.type === "income") monthlyData[key].income += t.amount;
-            else monthlyData[key].expense += t.amount;
-          });
-          const sorted = Object.entries(monthlyData).sort((a,b) => b[0].localeCompare(a[0]));
-          return (
-            <div>
-              <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 800 }}>📅 סיכום חודשי</h2>
-              {sorted.length === 0 && <div style={{ textAlign: "center", padding: 60, color: "#6b7280" }}>אין נתונים עדיין</div>}
-              {sorted.map(([key, data]) => {
-                const balance = data.income - data.expense;
-                return (
-                  <div key={key} style={{ background: "#ffffff", borderRadius: 14, padding: 16, border: `1px solid ${balance >= 0 ? "#00d4aa33" : "#ff6b6b33"}`, marginBottom: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>{monthNames[data.month]} {data.year}</div>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: balance >= 0 ? "#00d4aa" : "#ff6b6b" }}>{fmt(balance)}</div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <div style={{ flex: 1, background: "#00d4aa11", borderRadius: 8, padding: "8px 12px" }}>
-                        <div style={{ fontSize: 10, color: "#6b7280" }}>הכנסות</div>
-                        <div style={{ fontWeight: 700, color: "#00d4aa", fontSize: 14 }}>{fmt(data.income)}</div>
-                      </div>
-                      <div style={{ flex: 1, background: "#ff6b6b11", borderRadius: 8, padding: "8px 12px" }}>
-                        <div style={{ fontSize: 10, color: "#6b7280" }}>הוצאות</div>
-                        <div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 14 }}>{fmt(data.expense)}</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-
-        {/* TRANSACTIONS */}
+                {/* TRANSACTIONS */}
         {tab === "transactions" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
