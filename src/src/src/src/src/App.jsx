@@ -505,7 +505,8 @@ export default function App() {
               );
             })}
           </div>
-        )}
+          );
+        })()}
 
 
         {/* MONTHLY */}
