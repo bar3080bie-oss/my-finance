@@ -779,7 +779,7 @@ export default function App() {
 
           const addLoan = () => {
             if (!newLoan.name || !newLoan.amount) return;
-            const loan = { ...newLoan, id: "loan" + Date.now(), amount: Number(newLoan.amount), remaining: Number(newLoan.remaining || newLoan.amount), monthly: Number(newLoan.monthly || 0), rate: Number(newLoan.rate || 0) };
+            const loan = { ...newLoan, id: "loan" + Date.now(), amount: Number(newLoan.amount), remaining: Number(newLoan.remaining || newLoan.amount), monthly: Number(newLoan.monthly || 0), rate: Number(newLoan.rate || 0), schedule: newLoan.schedule || [] };
             setLoans(prev => [...prev, loan]);
             setNewLoan({ name: "", type: "הלוואה אישית", bankId: "", amount: "", remaining: "", monthly: "", rate: "", startDate: "", endDate: "" });
             setShowAddLoan(false);
@@ -906,8 +906,55 @@ export default function App() {
               </div>
               {showAddLoan && (
                 <div style={{ ...S.card, border: "1px solid #f59e0b44", marginBottom: 16 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 12 }}>הלוואה חדשה</div>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>הלוואה חדשה</div>
+                  <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 12 }}>העלי קובץ לוח סילוקין מהבנק — הכל יתמלא אוטומטית</div>
                   <div style={{ display: "grid", gap: 10 }}>
+                    <label style={{ ...S.btn, textAlign: "center", cursor: "pointer", display: "block" }}>
+                      📂 העלי לוח סילוקין מ-Excel
+                      <input type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={e => {
+                        if (!e.target.files[0]) return;
+                        const file = e.target.files[0];
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          try {
+                            const wb = XLSX.read(ev.target.result, { type: "array" });
+                            const ws = wb.Sheets[wb.SheetNames[0]];
+                            const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                            // Extract loan info
+                            let loanName = "הלוואה";
+                            let loanNum = "";
+                            for (let i = 0; i < 8; i++) {
+                              if (rows[i]) {
+                                const cell = String(rows[i][0] || "");
+                                if (cell.includes("מספר הלוואה")) loanNum = cell.replace("מספר הלוואה:", "").trim();
+                                if (cell.includes("הל.") || cell.includes("הלוואה")) loanName = cell;
+                              }
+                            }
+                            // Find header row
+                            let headerRow = -1;
+                            for (let i = 0; i < rows.length; i++) {
+                              if (rows[i] && rows[i].some(c => String(c||"").includes("מספר תשלום"))) { headerRow = i; break; }
+                            }
+                            if (headerRow === -1) { setImportMsg("❌ פורמט לא מוכר"); setTimeout(()=>setImportMsg(""),4000); return; }
+                            const schedule = [];
+                            for (let i = headerRow + 1; i < rows.length; i++) {
+                              const row = rows[i];
+                              if (!row || !row[1]) continue;
+                              schedule.push({ month: row[1], date: String(row[2]||""), principal: Math.round(parseFloat(row[3])||0), interest: Math.round(parseFloat(row[4])||0), payment: Math.round(parseFloat(row[5])||0), balance: Math.round(parseFloat(row[6])||0) });
+                            }
+                            if (schedule.length === 0) { setImportMsg("❌ לא נמצאו תשלומים"); setTimeout(()=>setImportMsg(""),4000); return; }
+                            const remaining = (schedule[0].balance || 0) + (schedule[0].principal || 0);
+                            const monthly = schedule[0].payment || 0;
+                            const totalAmount = schedule.reduce((s,r) => s + r.principal, 0) + remaining - schedule[0].principal;
+                            setNewLoan(p => ({ ...p, name: loanName + (loanNum ? " " + loanNum : ""), amount: String(Math.round(totalAmount)), remaining: String(remaining), monthly: String(monthly), schedule }));
+                            setImportMsg("✅ נמצאו " + schedule.length + " תשלומים — בדקי ושמרי");
+                            setTimeout(()=>setImportMsg(""),5000);
+                          } catch(err) { setImportMsg("❌ שגיאה: " + err.message); setTimeout(()=>setImportMsg(""),5000); }
+                        };
+                        reader.readAsArrayBuffer(file);
+                      }} />
+                    </label>
+                    <div style={{ fontSize: 12, color: "#6b7280", textAlign: "center" }}>— או הזיני ידנית —</div>
                     <input value={newLoan.name} onChange={e => setNewLoan(p => ({ ...p, name: e.target.value }))} placeholder="שם ההלוואה" style={S.input} />
                     <select value={newLoan.type} onChange={e => setNewLoan(p => ({ ...p, type: e.target.value }))} style={S.input}>
                       {loanTypes.map(t => <option key={t}>{t}</option>)}
@@ -921,10 +968,6 @@ export default function App() {
                       <input value={newLoan.remaining} onChange={e => setNewLoan(p => ({ ...p, remaining: e.target.value }))} placeholder="יתרה נוכחית (₪)" type="number" style={S.input} />
                       <input value={newLoan.monthly} onChange={e => setNewLoan(p => ({ ...p, monthly: e.target.value }))} placeholder="תשלום חודשי (₪)" type="number" style={S.input} />
                       <input value={newLoan.rate} onChange={e => setNewLoan(p => ({ ...p, rate: e.target.value }))} placeholder="ריבית שנתית (%)" type="number" step="0.1" style={S.input} />
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      <div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>תאריך התחלה</div><input value={newLoan.startDate} onChange={e => setNewLoan(p => ({ ...p, startDate: e.target.value }))} type="date" style={S.input} /></div>
-                      <div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>תאריך סיום</div><input value={newLoan.endDate} onChange={e => setNewLoan(p => ({ ...p, endDate: e.target.value }))} type="date" style={S.input} /></div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={addLoan} style={{ ...S.btn, flex: 1 }}>שמור</button>
