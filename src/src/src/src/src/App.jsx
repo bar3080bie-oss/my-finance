@@ -70,11 +70,11 @@ export default function App() {
   const addAccount = () => {
     if (!newAccount.name || !newAccount.last4) return;
     if (newAccount.id && accounts.find(a => a.id === newAccount.id)) {
-      setAccounts(prev => prev.map(a => a.id === newAccount.id ? { ...a, name: newAccount.name, last4: newAccount.last4, color: newAccount.color } : a));
+      setAccounts(prev => prev.map(a => a.id === newAccount.id ? { ...a, name: newAccount.name, last4: newAccount.last4, color: newAccount.color, bankId: newAccount.bankId } : a));
     } else {
       setAccounts(prev => [...prev, { ...newAccount, id: "acc" + Date.now(), balance: 0 }]);
     }
-    setNewAccount({ type: "bank", name: "", last4: "", color: "#00d4aa" });
+    setNewAccount({ type: "bank", name: "", last4: "", color: "#00d4aa", bankId: "" });
     setShowAddAccount(false);
   };
 
