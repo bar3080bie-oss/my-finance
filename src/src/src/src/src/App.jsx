@@ -433,12 +433,14 @@ export default function App() {
     setTransactions(prev => prev.map(t => {
       if (cards.some(c => c.id === t.accountId)) {
         const newCat = smartCatAll(t.desc);
-        if (newCat && newCat !== t.category) updated++;
-        return { ...t, category: newCat || t.category };
+        if (newCat) {
+          if (newCat !== t.category) updated++;
+          return { ...t, category: newCat };
+        }
       }
       return t;
     }));
-    setImportMsg("✅ עודכנו " + updated + " עסקאות!");
+    setImportMsg("✅ סווגו מחדש " + updated + " עסקאות!");
     setTimeout(() => setImportMsg(""), 4000);
   };
 
