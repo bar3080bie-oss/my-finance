@@ -388,7 +388,22 @@ export default function App() {
       if (/bit|paybox|העברה|ביט/.test(d)) return "העברות";
       if (/דמי כרטיס|עמלת|עמלה/.test(d)) return "עמלות";
       if (/תרומה|הידברות|עמותה|צדקה/.test(d)) return "תרומות";
-      if (/הייפ|איקאה|home center|ace|ריהוט/.test(d)) return "בית";
+      if (/הייפ|איקאה|home center|ace|ריהוט|דוד וצורי|שפע טוב|גיברץ|פלסטיקה/.test(d)) return "בית";
+      if (/פנגו|רכבת|אגד|דן |מונית|taxi|uber|גט|bolt/.test(d)) return "תחבורה";
+      if (/חניון|חניה|נאייקס|parking|אחוזת חוף|פרקינג/.test(d)) return "חניה";
+      if (/מכולת|מינימרקט|סופר אברמל|סיטונאות|קיוסק|מאפיי|מאפים|לחם|מאפה|בית הטבק/.test(d)) return "מזון";
+      if (/מכבי פארם|סופר פארם|פארמסי|בית מרקחת/.test(d)) return "בריאות";
+      if (/עיריית|ארנונה|מועצה|עירייה|מדינה|מס הכנסה|ביטוח לאומי/.test(d)) return "ארנונה ומסים";
+      if (/bit|paybox|ביט|העברה/.test(d)) return "העברות";
+      if (/netflix|spotify|apple.com|google|disney|youtube/.test(d)) return "מנויים";
+      if (/בזק|הוט|פלאפון|סלקום|partner|yes |גולן/.test(d)) return "תקשורת";
+      if (/דמי כרטיס|עמלת|עמלה/.test(d)) return "עמלות";
+      if (/פרחי|פרחים|כרמלי|ורדים/.test(d)) return "מתנות";
+      if (/תהל היופי|יופי|שיער|ציפורן|קוסמטיקה|איב רושה|ערוגות טיפוח/.test(d)) return "יופי";
+      if (/שירה חדשה|הידברות|עמותה|תרומה|צדקה|מקדשי|יאפצוק|וזאת הברכה/.test(d)) return "תרומות";
+      if (/עמית שמלה|זארה|h&m|מנגו|fox|next|קסטרו|ביגוד/.test(d)) return "ביגוד";
+      if (/בית הטבק|סיגריות|טבק/.test(d)) return "אחר";
+      if (/המלך בשדה|קצפת|אגאדיר|חומוס|בשרי|גורמה|מטעמי/.test(d)) return "מסעדות";
       return null;
     };
 
@@ -396,11 +411,12 @@ export default function App() {
     setTransactions(prev => prev.map(t => {
       if (cards.some(c => c.id === t.accountId)) {
         const newCat = smartCatAll(t.desc);
-        if (newCat) { updated++; return { ...t, category: newCat }; }
+        if (newCat && newCat !== t.category) updated++;
+        return { ...t, category: newCat || t.category };
       }
       return t;
     }));
-    setImportMsg("✅ סווגו " + updated + " עסקאות!");
+    setImportMsg("✅ עודכנו " + updated + " עסקאות!");
     setTimeout(() => setImportMsg(""), 4000);
   };
 
