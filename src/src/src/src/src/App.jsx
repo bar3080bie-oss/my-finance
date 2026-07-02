@@ -50,6 +50,14 @@ export default function App() {
   const [pendingFile, setPendingFile] = useState(null);
   const [billingMonthInput, setBillingMonthInput] = useState(new Date().toISOString().substring(0,7));
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [savings, setSavings] = useState(() => {
+    try { const s = localStorage.getItem("mf_savings"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [investments, setInvestments] = useState(() => {
+    try { const s = localStorage.getItem("mf_investments"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [showAddSaving, setShowAddSaving] = useState(false);
+  const [newSaving, setNewSaving] = useState({ name: "", type: "קרן פנסיה", owner: "", amount: "", company: "" });
   const [loans, setLoans] = useState(() => {
     try { const s = localStorage.getItem("mf_loans"); return s ? JSON.parse(s) : []; } catch { return []; }
   });
@@ -65,6 +73,8 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem("mf_accounts", JSON.stringify(accounts)); } catch {} }, [accounts]);
   useEffect(() => { try { localStorage.setItem("mf_transactions", JSON.stringify(transactions)); } catch {} }, [transactions]);
   useEffect(() => { try { localStorage.setItem("mf_loans", JSON.stringify(loans)); } catch {} }, [loans]);
+  useEffect(() => { try { localStorage.setItem("mf_savings", JSON.stringify(savings)); } catch {} }, [savings]);
+  useEffect(() => { try { localStorage.setItem("mf_investments", JSON.stringify(investments)); } catch {} }, [investments]);
 
   const banks = accounts.filter(a => a.type === "bank");
   const cards = accounts.filter(a => a.type === "card");
@@ -154,8 +164,26 @@ export default function App() {
             const amount = parseFloat(String(row[3] || row[2] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
             if (!amount || amount <= 0) return;
             const ענף = String(row[5] || "אחר").trim();
-            const catMap = { "מזון ומשקאות": "מזון", "מסעדות": "מזון", "אנרגיה": "תחבורה", "ריהוט ובית": "קניות", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "אחר", "תקשורת ומחשבים": "אחר", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר" };
-            const category = catMap[ענף] || "קניות";
+            const catMap = { "מזון ומשקאות": "מזון", "מסעדות": "מסעדות", "אנרגיה": "דלק", "ריהוט ובית": "בית", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "ביטוח", "תקשורת ומחשבים": "תקשורת", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר", "ביגוד והנעלה": "ביגוד", "תכשיטים ואקססוריז": "ביגוד", "טיפוח ויופי": "יופי", "חיות מחמד": "חיות", "ספורט": "ספורט" };
+            const smartCat = (desc, ענף) => {
+              const d = desc.toLowerCase();
+              if (/דלק|פז|סונול|דור אלון|פנגו|yellow|אמישרגז/.test(d)) return "דלק";
+              if (/חניה|פארקינג|parking/.test(d)) return "חניה";
+              if (/מכבי|כללית|לאומית|רופא|בית חולים|מאוחדת/.test(d)) return "בריאות";
+              if (/שופרסל|רמי לוי|ויקטורי|מגא|יינות ביתן|סופר|מינימרקט|מזון|מאפייה/.test(d)) return "מזון";
+              if (/סטורנקסט|אמזון|amazon|ali|ebay/.test(d)) return "קניות אונליין";
+              if (/פארם|super pharm|גרין|בית מרקחת/.test(d)) return "בריאות";
+              if (/מסעדה|פיצה|בורגר|קפה|cafe|wolt|10bis|mishloha/.test(d)) return "מסעדות";
+              if (/סלולר|פלאפון|הוט|בזק|yes|בינלאומי|שיחות/.test(d)) return "תקשורת";
+              if (/ספורט|כושר|gym|fitness/.test(d)) return "ספורט";
+              if (/ביטוח|מגדל|הראל|כלל|מנורה|הפניקס/.test(d)) return "ביטוח";
+              if (/netflix|spotify|apple|google|disney|hbo/.test(d)) return "בידור";
+              if (/חינוך|גן|בית ספר|קורס|אוניברסיטה/.test(d)) return "חינוך";
+              if (/זארה|h&m|מנגו|fox|next|קסטרו|רנואר|ביגוד/.test(d)) return "ביגוד";
+              if (/bit|paybox|העברה/.test(d)) return "העברות";
+              return catMap[ענף] || "אחר";
+            };
+            const category = smartCat(desc, ענף);
             const dateRaw = row[0];
             let dateFormatted = new Date().toISOString().split("T")[0];
             if (dateRaw instanceof Date) {
@@ -212,8 +240,26 @@ export default function App() {
           const amount = parseFloat(String(row[3] || row[2] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
           if (!amount || amount <= 0) return;
           const ענף = String(row[5] || "אחר").trim();
-          const catMap = { "מזון ומשקאות": "מזון", "מסעדות": "מזון", "אנרגיה": "תחבורה", "ריהוט ובית": "קניות", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "אחר", "תקשורת ומחשבים": "אחר", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר" };
-          const category = catMap[ענף] || "קניות";
+          const smartCat2 = (desc, ענף) => {
+            const catMap2 = { "מזון ומשקאות": "מזון", "מסעדות": "מסעדות", "אנרגיה": "דלק", "ריהוט ובית": "בית", "פנאי בילוי": "בידור", "ביטוח ופיננסים": "ביטוח", "תקשורת ומחשבים": "תקשורת", "חינוך": "חינוך", "בריאות": "בריאות", "שונות": "אחר", "ביגוד והנעלה": "ביגוד", "טיפוח ויופי": "יופי", "ספורט": "ספורט" };
+            const d = (desc || "").toLowerCase();
+            if (/דלק|פז|סונול|דור אלון|פנגו|yellow|אמישרגז/.test(d)) return "דלק";
+            if (/חניה|פארקינג|parking/.test(d)) return "חניה";
+            if (/מכבי|כללית|לאומית|רופא|בית חולים|מאוחדת/.test(d)) return "בריאות";
+            if (/שופרסל|רמי לוי|ויקטורי|מגא|יינות ביתן|סופר|מינימרקט|מאפייה/.test(d)) return "מזון";
+            if (/אמזון|amazon|ali|ebay/.test(d)) return "קניות אונליין";
+            if (/פארם|super pharm|גרין|בית מרקחת/.test(d)) return "בריאות";
+            if (/מסעדה|פיצה|בורגר|קפה|cafe|wolt|10bis/.test(d)) return "מסעדות";
+            if (/סלולר|פלאפון|הוט|בזק|yes|שיחות/.test(d)) return "תקשורת";
+            if (/ספורט|כושר|gym|fitness/.test(d)) return "ספורט";
+            if (/ביטוח|מגדל|הראל|כלל|מנורה|הפניקס/.test(d)) return "ביטוח";
+            if (/netflix|spotify|apple|google|disney/.test(d)) return "בידור";
+            if (/חינוך|גן|בית ספר|קורס/.test(d)) return "חינוך";
+            if (/זארה|h&m|מנגו|fox|next|קסטרו|ביגוד/.test(d)) return "ביגוד";
+            if (/bit|paybox|העברה/.test(d)) return "העברות";
+            return catMap2[ענף] || "אחר";
+          };
+          const category = smartCat2(desc, ענף);
           const dateRaw = row[0];
           let dateFormatted = new Date().toISOString().split("T")[0];
           if (dateRaw instanceof Date) {
@@ -326,7 +372,7 @@ export default function App() {
 
       {/* Tabs */}
       <nav style={{ display: "flex", background: "#f0f5f0", borderBottom: "1px solid #1a3a1a", overflowX: "auto" }}>
-        {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }, { id: "loans", label: "הלוואות", icon: "🏧" }, { id: "monthly", label: "חודשי", icon: "📅" }].map(t => (
+        {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }, { id: "loans", label: "הלוואות", icon: "🏧" }, { id: "savings", label: "חסכונות", icon: "💎" }, { id: "monthly", label: "חודשי", icon: "📅" }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "12px 16px", border: "none", cursor: "pointer", background: "transparent", color: tab === t.id ? "#00d4aa" : "#6b7280", borderBottom: tab === t.id ? "2px solid #00d4aa" : "2px solid transparent", fontWeight: tab === t.id ? 700 : 400, fontSize: 12, whiteSpace: "nowrap", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
             {t.icon} {t.label}
           </button>
@@ -343,6 +389,13 @@ export default function App() {
         {tab === "dashboard" && (() => {
           const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
           const bankTxs = transactions.filter(t => banks.some(b => b.id === t.accountId));
+          const year2026 = bankTxs.filter(t => t.date && t.date.startsWith("2026"));
+          const year2026Income = year2026.filter(t => t.type === "income").reduce((s,t) => s+t.amount, 0);
+          const year2026Expense = year2026.filter(t => t.type === "expense").reduce((s,t) => s+t.amount, 0);
+          const totalBankBalance = banks.reduce((s,a) => s + (a.balance||0), 0);
+          const totalLoans = loans.reduce((s,l) => s + l.remaining, 0);
+          const totalSavings = savings.reduce((s,sv) => s + Number(sv.amount||0), 0);
+
           const monthlyBank = {};
           bankTxs.forEach(t => {
             if (!t.date) return;
@@ -353,84 +406,101 @@ export default function App() {
             else monthlyBank[key].expense += t.amount;
           });
           const sortedMonths = Object.entries(monthlyBank).sort((a,b) => b[0].localeCompare(a[0]));
-          const totalBankBalance = banks.reduce((s,a) => s + (a.balance||0), 0);
+
+          // AI tips based on data
+          const tips = [];
+          if (year2026Income > year2026Expense) {
+            const surplus = year2026Income - year2026Expense;
+            tips.push({ icon: "💡", text: "יש לך עודף של " + fmt(surplus) + " השנה — שקלי להעביר חלק לחסכון או השקעה" });
+          }
+          if (totalLoans > totalBankBalance * 3) tips.push({ icon: "⚠️", text: "החוב שלך גבוה יחסית ליתרה — שקלי להגדיל תשלומים חודשיים" });
+          if (totalSavings === 0) tips.push({ icon: "💎", text: "עוד לא הגדרת חסכונות — כדאי לעקוב אחרי קרן הפנסיה וגמל להשקעה" });
+
           return (
-          <div>
-            {/* יתרה גדולה */}
-            <div style={{ ...S.card, background: "linear-gradient(135deg, #00d4aa15, #00b89410)", marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>🏦 יתרה כוללת בחשבונות</div>
-              <div style={{ fontSize: 36, fontWeight: 900, color: totalBankBalance >= 0 ? "#00b894" : "#ff6b6b", letterSpacing: "-1px" }}>{fmt(totalBankBalance)}</div>
-              <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
-                <div><div style={{ fontSize: 10, color: "#6b7280" }}>⬆️ סה"כ הכנסות</div><div style={{ fontWeight: 700, color: "#00b894", fontSize: 13 }}>{fmt(totalIncome)}</div></div>
-                <div><div style={{ fontSize: 10, color: "#6b7280" }}>⬇️ סה"כ הוצאות</div><div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 13 }}>{fmt(totalExpenses)}</div></div>
+          <div style={{ fontSize: 13 }}>
+            {/* יתרה + הלוואות + חסכונות */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+              <div style={{ ...S.card, marginBottom: 0, background: "linear-gradient(135deg, #00d4aa15, #00b89408)", border: "1px solid #00d4aa44", textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>🏦 יתרה</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: totalBankBalance >= 0 ? "#00b894" : "#ff6b6b" }}>{fmt(totalBankBalance)}</div>
+              </div>
+              <div style={{ ...S.card, marginBottom: 0, background: "linear-gradient(135deg, #f59e0b15, #f59e0b08)", border: "1px solid #f59e0b44", textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>🏧 הלוואות</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#f59e0b" }}>{fmt(totalLoans)}</div>
+              </div>
+              <div style={{ ...S.card, marginBottom: 0, background: "linear-gradient(135deg, #a78bfa15, #a78bfa08)", border: "1px solid #a78bfa44", textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>💎 חסכונות</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#a78bfa" }}>{fmt(totalSavings)}</div>
+              </div>
+            </div>
+
+            {/* הכנסות/הוצאות 2026 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+              <div style={{ ...S.card, marginBottom: 0 }}>
+                <div style={{ fontSize: 10, color: "#9ca3af" }}>⬆️ הכנסות 2026</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#00b894" }}>{fmt(year2026Income)}</div>
+              </div>
+              <div style={{ ...S.card, marginBottom: 0 }}>
+                <div style={{ fontSize: 10, color: "#9ca3af" }}>⬇️ הוצאות 2026</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#ff6b6b" }}>{fmt(year2026Expense)}</div>
               </div>
             </div>
 
             {/* חשבונות */}
-            <div style={S.card}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: "#00b894" }}>🏦 חשבונות בנק</div>
-              {banks.map(acc => (
-                <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #e8f0e8" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: acc.color }} />
-                    <span style={{ fontSize: 13 }}>{acc.name} <span style={{ color: "#6b7280", fontSize: 11 }}>****{acc.last4}</span></span>
+            {banks.length > 0 && (
+              <div style={{ ...S.card, padding: 12, marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8, color: "#00b894" }}>🏦 חשבונות</div>
+                {banks.map(acc => (
+                  <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #e8f0e8" }}>
+                    <span style={{ fontSize: 12 }}>{acc.name} <span style={{ color: "#9ca3af", fontSize: 11 }}>****{acc.last4}</span></span>
+                    <span style={{ fontWeight: 700, color: acc.balance >= 0 ? "#00b894" : "#ff6b6b", fontSize: 13 }}>{fmt(acc.balance)}</span>
                   </div>
-                  <span style={{ fontWeight: 700, color: acc.balance >= 0 ? "#00b894" : "#ff6b6b", fontSize: 15 }}>{fmt(acc.balance)}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* כרטיסים */}
-            <div style={S.card}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: "#f59e0b" }}>💳 כרטיסי אשראי</div>
-              {cards.map(acc => {
-                const cardTotal = transactions.filter(t => t.accountId === acc.id && t.type === "expense").reduce((s,t) => s+t.amount, 0);
-                return (
-                  <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #e8f0e8" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: acc.color }} />
-                      <span style={{ fontSize: 13 }}>{acc.name} <span style={{ color: "#6b7280", fontSize: 11 }}>****{acc.last4}</span></span>
-                    </div>
-                    <span style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 15 }}>{fmt(cardTotal)}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* פירוט חודשי */}
-            {sortedMonths.length > 0 && (
-              <div style={S.card}>
-                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>📅 פירוט חודשי — חשבונות בנק</div>
-                {sortedMonths.map(([key, data]) => {
-                  const bal = data.income - data.expense;
+            {cards.length > 0 && (
+              <div style={{ ...S.card, padding: 12, marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8, color: "#f59e0b" }}>💳 כרטיסים</div>
+                {cards.map(acc => {
+                  const cardTotal = transactions.filter(t => t.accountId === acc.id && t.type === "expense").reduce((s,t) => s+t.amount, 0);
                   return (
-                    <div key={key} style={{ padding: "10px 0", borderBottom: "1px solid #e8f0e8" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                        <span style={{ fontWeight: 600, fontSize: 13 }}>{monthNames[data.month]} {data.year}</span>
-                        <span style={{ fontWeight: 800, fontSize: 14, color: bal >= 0 ? "#00b894" : "#ff6b6b" }}>{fmt(bal)}</span>
-                      </div>
-                      <div style={{ display: "flex", gap: 12 }}>
-                        <span style={{ fontSize: 11, color: "#00b894" }}>⬆️ {fmt(data.income)}</span>
-                        <span style={{ fontSize: 11, color: "#ff6b6b" }}>⬇️ {fmt(data.expense)}</span>
-                      </div>
+                    <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #e8f0e8" }}>
+                      <span style={{ fontSize: 12 }}>{acc.name} <span style={{ color: "#9ca3af", fontSize: 11 }}>****{acc.last4}</span></span>
+                      <span style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 13 }}>{fmt(cardTotal)}</span>
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {/* Expenses by category */}
-            {Object.keys(expByCat).length > 0 && (
-              <div style={S.card}>
-                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>🌿 הוצאות לפי קטגוריה</div>
-                {Object.entries(expByCat).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
-                  <div key={cat} style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                      <span>{cat}</span><span style={{ color: "#9ca3af" }}>{fmt(amt)}</span>
+            {/* פירוט חודשי */}
+            {sortedMonths.length > 0 && (
+              <div style={{ ...S.card, padding: 12, marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>📅 פירוט חודשי — חשבונות בנק</div>
+                {sortedMonths.map(([key, data]) => {
+                  const bal = data.income - data.expense;
+                  return (
+                    <div key={key} style={{ padding: "7px 0", borderBottom: "1px solid #e8f0e8", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 12 }}>{monthNames[data.month]} {data.year}</div>
+                        <div style={{ fontSize: 10, color: "#9ca3af" }}>⬆️ {fmt(data.income)} · ⬇️ {fmt(data.expense)}</div>
+                      </div>
+                      <span style={{ fontWeight: 800, fontSize: 13, color: bal >= 0 ? "#00b894" : "#ff6b6b" }}>{fmt(bal)}</span>
                     </div>
-                    <div style={{ background: "#e8f0e8", borderRadius: 4, height: 6 }}>
-                      <div style={{ width: `${Math.min((amt / totalExpenses) * 100, 100)}%`, height: "100%", borderRadius: 4, background: "linear-gradient(90deg,#00d4aa,#44cc44)" }} />
-                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* עצות AI */}
+            {tips.length > 0 && (
+              <div style={{ ...S.card, padding: 12, background: "linear-gradient(135deg, #00d4aa08, #a78bfa08)", border: "1px solid #00d4aa33" }}>
+                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>🤖 עצות פיננסיות</div>
+                {tips.map((tip, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, padding: "6px 0", borderBottom: i < tips.length-1 ? "1px solid #e8f0e8" : "none", fontSize: 12 }}>
+                    <span>{tip.icon}</span><span>{tip.text}</span>
                   </div>
                 ))}
               </div>
@@ -439,7 +509,7 @@ export default function App() {
           );
         })()}
 
-        {/* ACCOUNTS */}
+                {/* ACCOUNTS */}
         {tab === "accounts" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -728,23 +798,49 @@ export default function App() {
                 <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{monthTxs.length} עסקאות</div>
               </div>
 
-              {/* פילוח קטגוריות */}
-              {Object.keys(catBreakdown).length > 0 && (
-                <div style={S.card}>
-                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>פילוח לפי קטגוריה</div>
-                  {Object.entries(catBreakdown).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => (
-                    <div key={cat} style={{ marginBottom: 10 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 3 }}>
-                        <span style={{ fontWeight: 500 }}>{cat}</span>
-                        <span style={{ fontWeight: 600, color: "#ff6b6b" }}>{fmt(amt)} <span style={{ color: "#9ca3af", fontSize: 11 }}>({Math.round(amt/monthTotal*100)}%)</span></span>
-                      </div>
-                      <div style={{ background: "#f0f0f0", borderRadius: 4, height: 6 }}>
-                        <div style={{ width: `${Math.round(amt/monthTotal*100)}%`, height: "100%", borderRadius: 4, background: currentCard?.color || "#f59e0b" }} />
-                      </div>
+              {/* פילוח קטגוריות + עוגה */}
+              {Object.keys(catBreakdown).length > 0 && (() => {
+                const pieColors = ["#f59e0b","#ff6b6b","#00b894","#a78bfa","#0099ff","#fb7185","#00d4aa","#f97316","#14b8a6","#8b5cf6","#ec4899","#06b6d4","#84cc16","#f43f5e"];
+                const sortedCats = Object.entries(catBreakdown).sort((a,b) => b[1]-a[1]);
+                const p2c = (cx, cy, r, deg) => { const rad = (deg - 90) * Math.PI / 180; return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }; };
+                let startAngle = 0;
+                const slices = sortedCats.map(([cat, amt], i) => {
+                  const angle = (amt / monthTotal) * 360;
+                  const s = { cat, amt, start: startAngle, angle, color: pieColors[i % pieColors.length] };
+                  startAngle += angle;
+                  return s;
+                });
+                return (
+                  <div style={S.card}>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>פילוח לפי קטגוריה</div>
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+                      <svg viewBox="0 0 100 100" width="150" height="150">
+                        {slices.map((s, i) => {
+                          if (s.angle >= 359.9) return <circle key={i} cx="50" cy="50" r="40" fill={s.color} />;
+                          const st = p2c(50,50,40,s.start), en = p2c(50,50,40,s.start+s.angle);
+                          return <path key={i} d={`M50,50 L${st.x},${st.y} A40,40,0,${s.angle>180?1:0},1,${en.x},${en.y}Z`} fill={s.color} stroke="#fff" strokeWidth="0.8" />;
+                        })}
+                        <circle cx="50" cy="50" r="22" fill="white" />
+                        <text x="50" y="50" textAnchor="middle" fontSize="6" fill="#333" dominantBaseline="middle" fontWeight="bold">{sortedCats.length} קטגוריות</text>
+                      </svg>
                     </div>
-                  ))}
-                </div>
-              )}
+                    {sortedCats.map(([cat, amt], i) => (
+                      <div key={cat} style={{ marginBottom: 6 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 2, alignItems: "center" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                            <div style={{ width: 9, height: 9, borderRadius: 2, background: pieColors[i % pieColors.length], flexShrink: 0 }} />
+                            <span style={{ fontWeight: 500 }}>{cat}</span>
+                          </div>
+                          <span style={{ fontWeight: 600, color: "#ff6b6b" }}>{fmt(amt)} <span style={{ color: "#9ca3af", fontSize: 10 }}>({Math.round(amt/monthTotal*100)}%)</span></span>
+                        </div>
+                        <div style={{ background: "#f0f0f0", borderRadius: 3, height: 4, marginRight: 14 }}>
+                          <div style={{ width: `${Math.round(amt/monthTotal*100)}%`, height: "100%", borderRadius: 3, background: pieColors[i % pieColors.length] }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {/* רשימת עסקאות */}
               <div style={S.card}>
@@ -1020,7 +1116,67 @@ export default function App() {
           );
         })()}
 
-                        {/* TRANSACTIONS */}
+        {/* SAVINGS */}
+        {tab === "savings" && (() => {
+          const savingTypes = ["קרן פנסיה", "גמל להשקעה", "קרן השתלמות", "ביטוח מנהלים", "פוליסת חיסכון", "תיק השקעות", "מניות", "נדל״ן", "קריפטו", "אחר"];
+          const addSaving = () => {
+            if (!newSaving.name || !newSaving.amount) return;
+            setSavings(prev => [...prev, { ...newSaving, id: "sav" + Date.now(), amount: Number(newSaving.amount) }]);
+            setNewSaving({ name: "", type: "קרן פנסיה", owner: "", amount: "", company: "" });
+            setShowAddSaving(false);
+          };
+          const totalSavingsAll = savings.reduce((s,sv) => s + Number(sv.amount||0), 0);
+          const byOwner = savings.reduce((acc, s) => { const o = s.owner || "כללי"; if (!acc[o]) acc[o] = []; acc[o].push(s); return acc; }, {});
+          return (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>💎 חסכונות והשקעות</h2>
+                <button onClick={() => setShowAddSaving(true)} style={S.btn}>+ הוסף</button>
+              </div>
+              {savings.length > 0 && (
+                <div style={{ ...S.card, background: "linear-gradient(135deg, #a78bfa15, #a78bfa05)", border: "1px solid #a78bfa44", marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: "#9ca3af" }}>סה"כ</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#a78bfa" }}>{fmt(totalSavingsAll)}</div>
+                </div>
+              )}
+              {showAddSaving && (
+                <div style={{ ...S.card, border: "1px solid #a78bfa44", marginBottom: 14 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 12 }}>חיסכון/השקעה חדשה</div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <input value={newSaving.name} onChange={e => setNewSaving(p => ({ ...p, name: e.target.value }))} placeholder="שם (למשל: פנסיה מגדל)" style={S.input} />
+                    <select value={newSaving.type} onChange={e => setNewSaving(p => ({ ...p, type: e.target.value }))} style={S.input}>
+                      {savingTypes.map(t => <option key={t}>{t}</option>)}
+                    </select>
+                    <input value={newSaving.owner} onChange={e => setNewSaving(p => ({ ...p, owner: e.target.value }))} placeholder="בעלים (בר / דור)" style={S.input} />
+                    <input value={newSaving.company} onChange={e => setNewSaving(p => ({ ...p, company: e.target.value }))} placeholder="חברה מנהלת" style={S.input} />
+                    <input value={newSaving.amount} onChange={e => setNewSaving(p => ({ ...p, amount: e.target.value }))} placeholder="סכום נוכחי (₪)" type="number" style={S.input} />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={addSaving} style={{ ...S.btn, flex: 1 }}>שמור</button>
+                      <button onClick={() => setShowAddSaving(false)} style={{ ...S.btnGhost, flex: 1 }}>ביטול</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {savings.length === 0 && !showAddSaving && <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}><div style={{ fontSize: 40, marginBottom: 12 }}>💎</div><div>הוסיפי חסכונות והשקעות</div></div>}
+              {Object.entries(byOwner).map(([owner, ownerSavings]) => (
+                <div key={owner} style={{ marginBottom: 14 }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: "#6b7280", marginBottom: 8 }}>👤 {owner}</div>
+                  {ownerSavings.map(sv => (
+                    <div key={sv.id} style={{ ...S.card, border: "1px solid #a78bfa33", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div><div style={{ fontWeight: 700, fontSize: 13 }}>{sv.name}</div><div style={{ fontSize: 11, color: "#9ca3af" }}>{sv.type}{sv.company ? " · " + sv.company : ""}</div></div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontWeight: 800, color: "#a78bfa", fontSize: 16 }}>{fmt(Number(sv.amount||0))}</span>
+                        <button onClick={() => setSavings(prev => prev.filter(s => s.id !== sv.id))} style={S.btnDanger}>🗑️</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+                                {/* TRANSACTIONS */}
         {tab === "transactions" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
