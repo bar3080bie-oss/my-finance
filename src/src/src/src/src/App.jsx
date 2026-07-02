@@ -179,7 +179,7 @@ export default function App() {
 
       {/* Tabs */}
       <nav style={{ display: "flex", background: "#0a1a0a", borderBottom: "1px solid #1a3a1a", overflowX: "auto" }}>
-        {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }].map(t => (
+        {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }, { id: "monthly", label: "חודשי", icon: "📅" }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "12px 16px", border: "none", cursor: "pointer", background: "transparent", color: tab === t.id ? "#00d4aa" : "#64748b", borderBottom: tab === t.id ? "2px solid #00d4aa" : "2px solid transparent", fontWeight: tab === t.id ? 700 : 400, fontSize: 12, whiteSpace: "nowrap", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
             {t.icon} {t.label}
           </button>
@@ -425,6 +425,49 @@ export default function App() {
             })}
           </div>
         )}
+
+
+        {/* MONTHLY */}
+        {tab === "monthly" && (() => {
+          const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+          const monthlyData = {};
+          transactions.forEach(t => {
+            if (!t.date) return;
+            const d = new Date(t.date);
+            const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+            if (!monthlyData[key]) monthlyData[key] = { income: 0, expense: 0, month: d.getMonth(), year: d.getFullYear() };
+            if (t.type === "income") monthlyData[key].income += t.amount;
+            else monthlyData[key].expense += t.amount;
+          });
+          const sorted = Object.entries(monthlyData).sort((a,b) => b[0].localeCompare(a[0]));
+          return (
+            <div>
+              <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 800 }}>📅 סיכום חודשי</h2>
+              {sorted.length === 0 && <div style={{ textAlign: "center", padding: 60, color: "#64748b" }}>אין נתונים עדיין</div>}
+              {sorted.map(([key, data]) => {
+                const balance = data.income - data.expense;
+                return (
+                  <div key={key} style={{ background: "#0d1f0d", borderRadius: 14, padding: 16, border: `1px solid ${balance >= 0 ? "#00d4aa33" : "#ff6b6b33"}`, marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>{monthNames[data.month]} {data.year}</div>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: balance >= 0 ? "#00d4aa" : "#ff6b6b" }}>{fmt(balance)}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ flex: 1, background: "#00d4aa11", borderRadius: 8, padding: "8px 12px" }}>
+                        <div style={{ fontSize: 10, color: "#64748b" }}>הכנסות</div>
+                        <div style={{ fontWeight: 700, color: "#00d4aa", fontSize: 14 }}>{fmt(data.income)}</div>
+                      </div>
+                      <div style={{ flex: 1, background: "#ff6b6b11", borderRadius: 8, padding: "8px 12px" }}>
+                        <div style={{ fontSize: 10, color: "#64748b" }}>הוצאות</div>
+                        <div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 14 }}>{fmt(data.expense)}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* TRANSACTIONS */}
         {tab === "transactions" && (
