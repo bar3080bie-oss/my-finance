@@ -47,6 +47,9 @@ export default function App() {
   const [selectedCardMonths, setSelectedCardMonths] = useState({});
   const setCardMonth = (cardId, month) => setSelectedCardMonths(prev => ({ ...prev, [cardId]: month }));
   const [cardNav, setCardNav] = useState({ bankId: null, cardId: null, month: null });
+  const [pendingFile, setPendingFile] = useState(null);
+  const [billingMonthInput, setBillingMonthInput] = useState(new Date().toISOString().substring(0,7));
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -576,8 +579,9 @@ export default function App() {
                   📂 העלי קובץ Excel
                   <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => {
                     if (!e.target.files[0]) return;
-                    const month = prompt("איזה חודש חיוב? (לדוגמה: 2026-01)") || new Date().toISOString().substring(0,7);
-                    importExcelWithMonth(e.target.files[0], cardNav.cardId, month);
+                    setPendingFile(e.target.files[0]);
+                    setBillingMonthInput(new Date().toISOString().substring(0,7));
+                    setShowMonthPicker(true);
                   }} />
                 </label>
                 {availableMonths.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>אין נתונים עדיין — העלי קובץ Excel</div>}
