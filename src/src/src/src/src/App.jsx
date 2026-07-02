@@ -636,14 +636,20 @@ export default function App() {
                   const total = mTxs.reduce((s,t) => s+t.amount, 0);
                   const [y, mo] = m.split("-");
                   return (
-                    <div key={m} onClick={() => setCardNav(p => ({ ...p, month: m }))} style={{ ...S.card, cursor: "pointer", border: `1px solid ${currentCard?.color}33`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
+                    <div key={m} style={{ ...S.card, border: `1px solid ${currentCard?.color}33`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div onClick={() => setCardNav(p => ({ ...p, month: m }))} style={{ flex: 1, cursor: "pointer" }}>
                         <div style={{ fontWeight: 700, fontSize: 14 }}>{monthNames[parseInt(mo)-1]} {y}</div>
                         <div style={{ fontSize: 11, color: "#9ca3af" }}>{mTxs.length} עסקאות</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: "#ff6b6b", fontSize: 16 }}>{fmt(total)}</span>
-                        <span style={{ color: "#9ca3af", fontSize: 18 }}>›</span>
+                        <button onClick={e => {
+                          e.stopPropagation();
+                          if (window.confirm("למחוק את כל עסקאות " + monthNames[parseInt(mo)-1] + " " + y + "?")) {
+                            setTransactions(prev => prev.filter(t => !(t.accountId === cardNav.cardId && (t.billingMonth || t.date?.substring(0,7)) === m)));
+                          }
+                        }} style={{ background: "#fff5f5", border: "1px solid #ffb3b3", borderRadius: 6, padding: "4px 8px", color: "#ff6b6b", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>🗑️</button>
+                        <span onClick={() => setCardNav(p => ({ ...p, month: m }))} style={{ color: "#9ca3af", fontSize: 18, cursor: "pointer" }}>›</span>
                       </div>
                     </div>
                   );
