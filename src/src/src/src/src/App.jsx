@@ -472,7 +472,7 @@ export default function App() {
                         <div style={{ fontSize: 16, letterSpacing: 3, fontWeight: 700, marginTop: 4 }}>**** **** **** {acc.last4}</div>
                       </div>
                       <div style={{ textAlign: "left" }}>
-                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{selectedMonth === "all" ? "סה"כ" : monthNames[parseInt(selectedMonth.split("-")[1])-1]}</div>
+                        <div style={{ fontSize: 10, color: "#9ca3af" }}>{selectedMonth === "all" ? "כולל" : monthNames[parseInt(selectedMonth.split("-")[1])-1]}</div>
                         <div style={{ fontWeight: 900, fontSize: 22, color: acc.color }}>{fmt(total)}</div>
                       </div>
                     </div>
