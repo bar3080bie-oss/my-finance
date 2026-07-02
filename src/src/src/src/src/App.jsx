@@ -311,7 +311,7 @@ export default function App() {
           if (!num || !total) continue;
           schedule.push({ month: num, date, principal: Math.round(principal), interest: Math.round(interest), payment: Math.round(total), balance: Math.round(balance) });
         }
-        setLoans(prev => prev.map(l => l.id === loanId ? { ...l, schedule, remaining: schedule[0]?.balance + schedule[0]?.principal || l.remaining, monthly: schedule[0]?.payment || l.monthly } : l));
+        setLoans(prev => prev.map(l => l.id === loanId ? { ...l, schedule, monthly: schedule[0]?.payment || l.monthly } : l));
         setImportMsg("✅ לוח סילוקין עם " + schedule.length + " תשלומים עלה בהצלחה!");
         setTimeout(() => setImportMsg(""), 4000);
       } catch(err) { setImportMsg("❌ שגיאה: " + err.message); setTimeout(() => setImportMsg(""), 5000); }
@@ -1026,7 +1026,7 @@ export default function App() {
                               if (!dataRow) { setImportMsg("❌ לא נמצאו פרטי הלוואה"); setTimeout(()=>setImportMsg(""),4000); return; }
                               const name = String(dataRow[1] || "הלוואה").trim();
                               const amount = Math.round(parseFloat(dataRow[2]) || 0);
-                              const remaining = Math.round(parseFloat(dataRow[6]) || 0);
+                              const remaining = Math.round(parseFloat(String(dataRow[6]).replace(/,/g,"")) || 0);
                               const monthly = Math.round(parseFloat(dataRow[8]) || 0);
                               const rateStr = String(dataRow[4] || "");
                               const rateMatch = rateStr.match(/(\d+\.?\d*)\s*%/);
