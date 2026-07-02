@@ -50,6 +50,8 @@ export default function App() {
   const [pendingFile, setPendingFile] = useState(null);
   const [billingMonthInput, setBillingMonthInput] = useState(new Date().toISOString().substring(0,7));
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -266,7 +268,10 @@ export default function App() {
             <div style={{ fontSize: 10, color: "#00aa66" }}>מנהל פיננסי משפחתי 🌿</div>
           </div>
         </div>
-        <button onClick={() => setAiOpen(true)} style={{ background: "#e6faf6", border: "1px solid #00d4aa44", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#00d4aa", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🤖 יועץ AI</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setShowSearch(true)} style={{ background: "#f0f5f0", border: "1px solid #d0e4d0", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#6b7280", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔍</button>
+          <button onClick={() => setAiOpen(true)} style={{ background: "#e6faf6", border: "1px solid #00d4aa44", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#00d4aa", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🤖 AI</button>
+        </div>
       </header>
 
       {/* Tabs */}
@@ -609,6 +614,23 @@ export default function App() {
                   }} />
                 </label>
                 {availableMonths.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>אין נתונים עדיין — העלי קובץ Excel</div>}
+
+                {/* חיוב אחרון */}
+                {availableMonths.length > 0 && (() => {
+                  const lastMonth = availableMonths[0];
+                  const lastTxs = cardAllTxs.filter(t => (t.billingMonth || t.date?.substring(0,7)) === lastMonth);
+                  const lastTotal = lastTxs.reduce((s,t) => s+t.amount, 0);
+                  const [ly, lm] = lastMonth.split("-");
+                  const monthNames2 = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+                  return (
+                    <div style={{ ...S.card, background: `linear-gradient(135deg, ${currentCard?.color}22, ${currentCard?.color}08)`, border: `2px solid ${currentCard?.color}55`, marginBottom: 16 }}>
+                      <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>חיוב אחרון — {monthNames2[parseInt(lm)-1]} {ly}</div>
+                      <div style={{ fontSize: 28, fontWeight: 900, color: currentCard?.color || "#f59e0b" }}>{fmt(lastTotal)}</div>
+                      <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{lastTxs.length} עסקאות</div>
+                    </div>
+                  );
+                })()}
+
                 {availableMonths.map(m => {
                   const mTxs = cardAllTxs.filter(t => (t.billingMonth || t.date?.substring(0,7)) === m);
                   const total = mTxs.reduce((s,t) => s+t.amount, 0);
@@ -759,6 +781,41 @@ export default function App() {
       </main>
 
       {/* AI Chat */}
+      {showSearch && (
+        <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 400, display: "flex", flexDirection: "column" }} dir="rtl">
+          <div style={{ padding: "16px", borderBottom: "1px solid #e0ece0", display: "flex", gap: 10, alignItems: "center" }}>
+            <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="חפש עסקה..." style={{ flex: 1, background: "#f5f7f5", border: "1px solid #d0e4d0", borderRadius: 8, padding: "10px 14px", fontSize: 15, fontFamily: "inherit", outline: "none" }} />
+            <button onClick={() => { setShowSearch(false); setSearchQuery(""); }} style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "#6b7280", fontFamily: "inherit" }}>ביטול</button>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+            {searchQuery.length > 1 && (() => {
+              const results = transactions.filter(t => t.desc && t.desc.toLowerCase().includes(searchQuery.toLowerCase()));
+              return (
+                <div>
+                  <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 10 }}>{results.length} תוצאות</div>
+                  {results.map(t => {
+                    const acc = accounts.find(a => a.id === t.accountId);
+                    return (
+                      <div key={t.id} style={{ background: "#fff", borderRadius: 12, padding: 14, marginBottom: 8, border: "1px solid #e0ece0", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 14 }}>{t.desc}</div>
+                            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{t.date} · {t.category} · {acc ? acc.name + " ****" + acc.last4 : ""}</div>
+                          </div>
+                          <span style={{ fontWeight: 700, color: t.type === "income" ? "#00b894" : "#ff6b6b", fontSize: 15 }}>{t.type === "income" ? "+" : "-"}{fmt(t.amount)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {results.length === 0 && <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>אין תוצאות</div>}
+                </div>
+              );
+            })()}
+            {searchQuery.length <= 1 && <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>הקלידי לפחות 2 תווים לחיפוש</div>}
+          </div>
+        </div>
+      )}
+
       {showMonthPicker && (
         <div style={{ position: "fixed", inset: 0, background: "#0008", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div dir="rtl" style={{ background: "#fff", borderRadius: 16, padding: 24, width: 300, boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
