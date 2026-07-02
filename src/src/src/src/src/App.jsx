@@ -107,9 +107,9 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true, bookVBA: false });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: "dd/mm/yyyy" });
         let imported = 0;
         const newTxs = [];
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
@@ -156,6 +156,12 @@ export default function App() {
             } else if (typeof dateRaw === "number" && dateRaw > 40000) {
               const d = new Date((dateRaw - 25569) * 86400 * 1000);
               dateFormatted = d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
+            } else if (typeof dateRaw === "string" && dateRaw.includes("/")) {
+              const parts = dateRaw.split("/");
+              if (parts.length === 3) {
+                const year = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+                dateFormatted = year + "-" + parts[1].padStart(2,"0") + "-" + parts[0].padStart(2,"0");
+              }
             }
             const importId = "kal-" + dateFormatted + "-" + desc + "-" + amount;
             if (existingIds.has(importId)) return;
@@ -185,9 +191,9 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+        const wb = XLSX.read(e.target.result, { type: "array", cellDates: true, bookVBA: false });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: "dd/mm/yyyy" });
         let imported = 0;
         const newTxs = [];
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
