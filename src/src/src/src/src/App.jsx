@@ -89,6 +89,7 @@ export default function App() {
     setNewAccount({ ...acc });
     setShowAddAccount(true);
     if (acc.type === "card") {
+      setTab("cards");
       setCardNav({ bankId: acc.bankId || "unlinked", cardId: null, month: null });
     }
   };
@@ -541,6 +542,26 @@ export default function App() {
                   <button onClick={() => setCardNav({ bankId: null, cardId: null, month: null })} style={{ ...S.btnSm, fontSize: 14 }}>‹</button>
                   <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>{currentBank ? `${currentBank.name} ****${currentBank.last4}` : "כרטיסים ללא חשבון"}</h2>
                 </div>
+                {showAddAccount && newAccount.type === "card" && (
+                  <div style={{ ...S.card, border: "1px solid #f59e0b44", marginBottom: 16 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>עריכת כרטיס</div>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <input value={newAccount.name} onChange={e => setNewAccount(p => ({ ...p, name: e.target.value }))} placeholder="שם הכרטיס" style={S.input} />
+                      <input value={newAccount.last4} onChange={e => setNewAccount(p => ({ ...p, last4: e.target.value.slice(0,4) }))} placeholder="4 ספרות אחרונות" maxLength={4} style={S.input} />
+                      <select value={newAccount.bankId || ""} onChange={e => setNewAccount(p => ({ ...p, bankId: e.target.value }))} style={S.input}>
+                        <option value="">ללא חשבון בנק</option>
+                        {banks.map(b => <option key={b.id} value={b.id}>{b.name} ****{b.last4}</option>)}
+                      </select>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {CARD_COLORS.map(c => <div key={c} onClick={() => setNewAccount(p => ({ ...p, color: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: newAccount.color === c ? "3px solid #333" : "3px solid transparent" }} />)}
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={addAccount} style={{ ...S.btn, flex: 1 }}>שמור</button>
+                        <button onClick={() => setShowAddAccount(false)} style={{ ...S.btnGhost, flex: 1 }}>ביטול</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {currentBankCards.map(card => {
                   const cardTxs = transactions.filter(t => t.accountId === card.id);
                   const months = [...new Set(cardTxs.map(t => t.billingMonth || t.date?.substring(0,7)).filter(Boolean))].sort().reverse();
