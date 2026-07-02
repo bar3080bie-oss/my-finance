@@ -362,37 +362,46 @@ export default function App() {
   };
 
   const reclassifyAll = async () => {
-    setImportMsg("🤖 מסווג את כל העסקאות עם AI...");
+    setImportMsg("🤖 מסווג את כל העסקאות...");
     const cardTxs = transactions.filter(t => cards.some(c => c.id === t.accountId));
     const merchants = [...new Set(cardTxs.map(t => t.desc).filter(Boolean))];
     if (merchants.length === 0) { setImportMsg("אין עסקאות לסיווג"); setTimeout(() => setImportMsg(""), 3000); return; }
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 2000,
-          system: `אתה מסווג הוצאות בישראל. סווג כל עסק לקטגוריה מהרשימה: מזון, מסעדות, תחבורה, דלק, חניה, בריאות, ביגוד, יופי, מנויים, תקשורת, ביטוח, חינוך, בית, ספורט, בידור, קניות אונליין, העברות, עמלות, תרומות, אחר. ענה רק ב-JSON תקני ללא הסברים: {"שם עסק": "קטגוריה"}`,
-          messages: [{ role: "user", content: JSON.stringify(merchants) }]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || "{}";
-      const clean = text.replace(/```json|```/g, "").trim();
-      const catMap = JSON.parse(clean);
-      setTransactions(prev => prev.map(t => {
-        if (cards.some(c => c.id === t.accountId) && catMap[t.desc]) {
-          return { ...t, category: catMap[t.desc] };
-        }
-        return t;
-      }));
-      setImportMsg("✅ כל העסקאות סווגו בהצלחה!");
-      setTimeout(() => setImportMsg(""), 4000);
-    } catch(err) {
-      setImportMsg("❌ שגיאה בסיווג: " + err.message);
-      setTimeout(() => setImportMsg(""), 4000);
-    }
+    
+    // Use smart categorization (no API needed)
+    const smartCatAll = (desc) => {
+      const d = (desc || "").toLowerCase();
+      if (/דלק|פז|סונול|דור אלון|פנגו|yellow|אמישרגז|bp |oil /.test(d)) return "דלק";
+      if (/חניה|פארקינג|parking|כביש 6|כביש6/.test(d)) return "תחבורה";
+      if (/מכבי|כללית|לאומית|רופא|בית חולים|מאוחדת|אופטיקה|תרופות/.test(d)) return "בריאות";
+      if (/פארם|super pharm|superpharm|סופר פארם|גרין|בית מרקחת/.test(d)) return "בריאות";
+      if (/שופרסל|רמי לוי|ויקטורי|מגא|יינות ביתן|מינימרקט|מאפייה/.test(d)) return "מזון";
+      if (/wolt|יאנגו|yango|10bis|פיצה|בורגר|מקדונלד|סביח|פלאפל/.test(d)) return "מסעדות";
+      if (/קפה|cafe|coffee|רולדין|ארומה|גרג|איטליאנו|סושי|מסעדה|שניצל|סוויט/.test(d)) return "מסעדות";
+      if (/netflix|spotify|apple.com|google|disney|hbo|youtube/.test(d)) return "מנויים";
+      if (/פלאפון|הוט|בזק|yes |סלקום|partner|אורנג|גולן/.test(d)) return "תקשורת";
+      if (/ביטוח|מגדל|הראל|כלל|מנורה|הפניקס|איי.אי.ג/.test(d)) return "ביטוח";
+      if (/חינוך|גן |בית ספר|קורס|אוניברסיטה|מלכה/.test(d)) return "חינוך";
+      if (/זארה|h&m|מנגו|fox|next|קסטרו|עמית שמלה|טרמינל/.test(d)) return "ביגוד";
+      if (/איב רושה|oil de|טיפוח|יופי|שיער|ציפורן|קוסמטיקה/.test(d)) return "יופי";
+      if (/ספורט|כושר|gym|fitness/.test(d)) return "ספורט";
+      if (/אמזון|amazon|ali|ebay/.test(d)) return "קניות אונליין";
+      if (/bit|paybox|העברה|ביט/.test(d)) return "העברות";
+      if (/דמי כרטיס|עמלת|עמלה/.test(d)) return "עמלות";
+      if (/תרומה|הידברות|עמותה|צדקה/.test(d)) return "תרומות";
+      if (/הייפ|איקאה|home center|ace|ריהוט/.test(d)) return "בית";
+      return null;
+    };
+
+    let updated = 0;
+    setTransactions(prev => prev.map(t => {
+      if (cards.some(c => c.id === t.accountId)) {
+        const newCat = smartCatAll(t.desc);
+        if (newCat) { updated++; return { ...t, category: newCat }; }
+      }
+      return t;
+    }));
+    setImportMsg("✅ סווגו " + updated + " עסקאות!");
+    setTimeout(() => setImportMsg(""), 4000);
   };
 
   const sendAI = async () => {
