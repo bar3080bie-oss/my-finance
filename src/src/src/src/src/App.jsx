@@ -156,9 +156,20 @@ export default function App() {
             let dateFormatted;
             if (dateStr instanceof Date) {
               dateFormatted = dateStr.getFullYear() + "-" + String(dateStr.getMonth()+1).padStart(2,"0") + "-" + String(dateStr.getDate()).padStart(2,"0");
+            } else if (typeof dateStr === "number" && dateStr > 40000) {
+              const d = new Date((dateStr - 25569) * 86400 * 1000);
+              dateFormatted = d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
             } else {
-              const dateParts = String(dateStr).split("/");
-              dateFormatted = dateParts.length === 3 ? dateParts[2] + "-" + dateParts[1].padStart(2,"0") + "-" + dateParts[0].padStart(2,"0") : new Date().toISOString().split("T")[0];
+              const s = String(dateStr || "");
+              const parts = s.includes("/") ? s.split("/") : s.includes("-") ? s.split("-") : null;
+              if (parts && parts.length === 3) {
+                const year = parts[0].length === 4 ? parts[0] : (parts[2].length === 4 ? parts[2] : "20" + parts[2]);
+                const month = parts[0].length === 4 ? parts[1] : parts[1];
+                const day = parts[0].length === 4 ? parts[2] : parts[0];
+                dateFormatted = year + "-" + String(month).padStart(2,"0") + "-" + String(day).padStart(2,"0");
+              } else {
+                dateFormatted = new Date().toISOString().split("T")[0];
+              }
             }
             if (amount > 0) {
               newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category, desc, date: dateFormatted });
