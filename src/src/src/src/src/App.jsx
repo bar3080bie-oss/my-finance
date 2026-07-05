@@ -140,7 +140,7 @@ export default function App() {
           if (!isKal) {
             // פורמט בנק בינלאומי
             if (i < 7) return;
-            const dateStr = row[8];
+            const dateStr = row[2] || row[8];
             const desc = String(row[5] || "עסקה").trim().substring(0, 40);
             const credit = parseFloat(String(row[3] || "").replace(/,/g, "")) || 0;
             const debit = parseFloat(String(row[4] || "").replace(/,/g, "")) || 0;
