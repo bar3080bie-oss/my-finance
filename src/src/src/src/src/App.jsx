@@ -153,8 +153,13 @@ export default function App() {
             const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות");
             const type = credit > 0 ? "income" : "expense";
             const category = isCommission ? "עמלות" : "אחר";
-            const dateParts = String(dateStr).split("/");
-            const dateFormatted = dateParts.length === 3 ? dateParts[2] + "-" + dateParts[1].padStart(2,"0") + "-" + dateParts[0].padStart(2,"0") : new Date().toISOString().split("T")[0];
+            let dateFormatted;
+            if (dateStr instanceof Date) {
+              dateFormatted = dateStr.getFullYear() + "-" + String(dateStr.getMonth()+1).padStart(2,"0") + "-" + String(dateStr.getDate()).padStart(2,"0");
+            } else {
+              const dateParts = String(dateStr).split("/");
+              dateFormatted = dateParts.length === 3 ? dateParts[2] + "-" + dateParts[1].padStart(2,"0") + "-" + dateParts[0].padStart(2,"0") : new Date().toISOString().split("T")[0];
+            }
             if (amount > 0) {
               newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category, desc, date: dateFormatted });
               imported++;
