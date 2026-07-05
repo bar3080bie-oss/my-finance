@@ -155,7 +155,9 @@ export default function App() {
             const category = isCommission ? "עמלות" : "אחר";
             let dateFormatted;
             if (dateStr instanceof Date) {
-              dateFormatted = dateStr.getFullYear() + "-" + String(dateStr.getMonth()+1).padStart(2,"0") + "-" + String(dateStr.getDate()).padStart(2,"0");
+              // Use local time (not UTC) to avoid timezone shift
+              const localDate = new Date(dateStr.getTime() + dateStr.getTimezoneOffset() * -60000);
+              dateFormatted = localDate.getUTCFullYear() + "-" + String(localDate.getUTCMonth()+1).padStart(2,"0") + "-" + String(localDate.getUTCDate()).padStart(2,"0");
             } else if (typeof dateStr === "number" && dateStr > 40000) {
               const d = new Date((dateStr - 25569) * 86400 * 1000);
               dateFormatted = d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
