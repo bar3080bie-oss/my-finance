@@ -67,6 +67,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingTxId, setEditingTxId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [expandedMonth, setExpandedMonth] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -1329,8 +1330,6 @@ export default function App() {
           });
           
           const sorted = Object.entries(allMonthly).sort((a,b) => b[0].localeCompare(a[0]));
-          const [expandedMonth, setExpandedMonth] = useState(null);
-
           return (
             <div>
               <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 800 }}>📅 סיכום חודשי</h2>
