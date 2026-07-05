@@ -1317,18 +1317,42 @@ export default function App() {
         {tab === "monthly" && (() => {
           const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
           
-          // כל העסקאות לפי חודש
-          const allMonthly = {};
-          transactions.forEach(t => {
+          // עסקאות בנק לפי חודש (לא כרטיסים)
+          const bankMonthly = {};
+          transactions.filter(t => banks.some(b => b.id === t.accountId)).forEach(t => {
             if (!t.date) return;
             const key = t.date.substring(0,7);
-            if (!allMonthly[key]) allMonthly[key] = { income: 0, expense: 0, bank: {}, cards: {}, txs: [] };
-            const isCard = cards.some(c => c.id === t.accountId);
-            if (t.type === "income") allMonthly[key].income += t.amount;
-            else allMonthly[key].expense += t.amount;
-            allMonthly[key].txs.push(t);
+            if (!bankMonthly[key]) bankMonthly[key] = { income: 0, expense: 0, txs: [] };
+            if (t.type === "income") bankMonthly[key].income += t.amount;
+            else bankMonthly[key].expense += t.amount;
+            bankMonthly[key].txs.push(t);
           });
-          
+
+          // עסקאות כרטיסים לפי חודש חיוב
+          const cardMonthly = {};
+          transactions.filter(t => cards.some(c => c.id === t.accountId)).forEach(t => {
+            const key = t.billingMonth || t.date?.substring(0,7);
+            if (!key) return;
+            if (!cardMonthly[key]) cardMonthly[key] = { expense: 0, txs: [] };
+            cardMonthly[key].expense += t.amount;
+            cardMonthly[key].txs.push(t);
+          });
+
+          // מיזוג לפי חודש
+          const allKeys = new Set([...Object.keys(bankMonthly), ...Object.keys(cardMonthly)]);
+          const allMonthly = {};
+          allKeys.forEach(key => {
+            const bank = bankMonthly[key] || { income: 0, expense: 0, txs: [] };
+            const card = cardMonthly[key] || { expense: 0, txs: [] };
+            allMonthly[key] = {
+              income: bank.income,
+              bankExpense: bank.expense,
+              cardExpense: card.expense,
+              expense: bank.expense + card.expense,
+              txs: [...bank.txs, ...card.txs]
+            };
+          });
+
           const sorted = Object.entries(allMonthly).sort((a,b) => b[0].localeCompare(a[0]));
           return (
             <div>
@@ -1363,14 +1387,18 @@ export default function App() {
                           <span style={{ color: "#9ca3af" }}>{isExpanded ? "▲" : "▼"}</span>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                        <div style={{ flex: 1, background: "#e6faf6", borderRadius: 8, padding: "6px 10px" }}>
-                          <div style={{ fontSize: 10, color: "#9ca3af" }}>הכנסות</div>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                        <div style={{ flex: 1, background: "#e6faf6", borderRadius: 8, padding: "6px 10px", minWidth: 80 }}>
+                          <div style={{ fontSize: 10, color: "#9ca3af" }}>⬆️ הכנסות</div>
                           <div style={{ fontWeight: 700, color: "#00b894", fontSize: 13 }}>{fmt(data.income)}</div>
                         </div>
-                        <div style={{ flex: 1, background: "#fff5f5", borderRadius: 8, padding: "6px 10px" }}>
-                          <div style={{ fontSize: 10, color: "#9ca3af" }}>הוצאות</div>
-                          <div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 13 }}>{fmt(data.expense)}</div>
+                        <div style={{ flex: 1, background: "#fff5f5", borderRadius: 8, padding: "6px 10px", minWidth: 80 }}>
+                          <div style={{ fontSize: 10, color: "#9ca3af" }}>🏦 הוצאות בנק</div>
+                          <div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 13 }}>{fmt(data.bankExpense)}</div>
+                        </div>
+                        <div style={{ flex: 1, background: "#fff8ee", borderRadius: 8, padding: "6px 10px", minWidth: 80 }}>
+                          <div style={{ fontSize: 10, color: "#9ca3af" }}>💳 כרטיסים</div>
+                          <div style={{ fontWeight: 700, color: "#f59e0b", fontSize: 13 }}>{fmt(data.cardExpense)}</div>
                         </div>
                       </div>
                       {topCats.length > 0 && (
