@@ -1009,12 +1009,14 @@ export default function App() {
                     </div>
                     {editingTxId === t.id ? (
                       <div style={{ marginTop: 6, display: "grid", gap: 6 }}>
-                        <input
-                          defaultValue={t.note || ""}
-                          placeholder="פירוט (למי / על מה)"
-                          onChange={e => setTransactions(prev => prev.map(tx => tx.id === t.id ? { ...tx, note: e.target.value } : tx))}
-                          style={{ ...S.input, fontSize: 12, padding: "5px 10px" }}
-                        />
+                        {(t.desc || "").toLowerCase().includes("bit") && (
+                          <input
+                            defaultValue={t.note || ""}
+                            placeholder="למי / על מה (BIT)"
+                            onChange={e => setTransactions(prev => prev.map(tx => tx.id === t.id ? { ...tx, note: e.target.value } : tx))}
+                            style={{ ...S.input, fontSize: 12, padding: "5px 10px" }}
+                          />
+                        )}
                         <select value={t.category} onChange={e => { setTransactions(prev => prev.map(tx => tx.id === t.id ? { ...tx, category: e.target.value } : tx)); }} style={{ ...S.select, fontSize: 11, width: "100%" }}>
                           {EXPENSE_CATS.map(c => <option key={c}>{c}</option>)}
                         </select>
@@ -1023,7 +1025,7 @@ export default function App() {
                     ) : (
                       <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2, display: "flex", gap: 6, alignItems: "center" }}>
                         <span style={{ background: "#f0f5f0", borderRadius: 4, padding: "1px 6px" }}>{t.category}</span>
-                        {t.note && <span style={{ color: "#6b7280", fontStyle: "italic" }}>{t.note}</span>}
+                        {t.note && <span style={{ color: "#6b7280", fontStyle: "italic" }}>→ {t.note}</span>}
                       </div>
                     )}
                   </div>
@@ -1310,7 +1312,107 @@ export default function App() {
           );
         })()}
 
-        {/* SAVINGS */}
+        {/* MONTHLY */}
+        {tab === "monthly" && (() => {
+          const monthNames = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+          
+          // כל העסקאות לפי חודש
+          const allMonthly = {};
+          transactions.forEach(t => {
+            if (!t.date) return;
+            const key = t.date.substring(0,7);
+            if (!allMonthly[key]) allMonthly[key] = { income: 0, expense: 0, bank: {}, cards: {}, txs: [] };
+            const isCard = cards.some(c => c.id === t.accountId);
+            if (t.type === "income") allMonthly[key].income += t.amount;
+            else allMonthly[key].expense += t.amount;
+            allMonthly[key].txs.push(t);
+          });
+          
+          const sorted = Object.entries(allMonthly).sort((a,b) => b[0].localeCompare(a[0]));
+          const [expandedMonth, setExpandedMonth] = useState(null);
+
+          return (
+            <div>
+              <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 800 }}>📅 סיכום חודשי</h2>
+              
+              {sorted.length === 0 && (
+                <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
+                  <div>אין נתונים עדיין</div>
+                </div>
+              )}
+
+              {sorted.map(([key, data]) => {
+                const [y, mo] = key.split("-");
+                const bal = data.income - data.expense;
+                const isExpanded = expandedMonth === key;
+                
+                // פילוח קטגוריות לחודש
+                const catBreak = data.txs.filter(t => t.type === "expense").reduce((acc, t) => {
+                  acc[t.category] = (acc[t.category]||0) + t.amount;
+                  return acc;
+                }, {});
+                const topCats = Object.entries(catBreak).sort((a,b) => b[1]-a[1]).slice(0,5);
+
+                return (
+                  <div key={key} style={{ ...S.card, marginBottom: 10, border: `1px solid ${bal >= 0 ? "#00d4aa33" : "#ff6b6b33"}` }}>
+                    <div onClick={() => setExpandedMonth(isExpanded ? null : key)} style={{ cursor: "pointer" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{monthNames[parseInt(mo)-1]} {y}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontWeight: 800, fontSize: 16, color: bal >= 0 ? "#00b894" : "#ff6b6b" }}>{fmt(bal)}</span>
+                          <span style={{ color: "#9ca3af" }}>{isExpanded ? "▲" : "▼"}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+                        <div style={{ flex: 1, background: "#e6faf6", borderRadius: 8, padding: "6px 10px" }}>
+                          <div style={{ fontSize: 10, color: "#9ca3af" }}>הכנסות</div>
+                          <div style={{ fontWeight: 700, color: "#00b894", fontSize: 13 }}>{fmt(data.income)}</div>
+                        </div>
+                        <div style={{ flex: 1, background: "#fff5f5", borderRadius: 8, padding: "6px 10px" }}>
+                          <div style={{ fontSize: 10, color: "#9ca3af" }}>הוצאות</div>
+                          <div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 13 }}>{fmt(data.expense)}</div>
+                        </div>
+                      </div>
+                      {topCats.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {topCats.map(([cat, amt]) => (
+                            <div key={cat} style={{ background: "#f0f5f0", borderRadius: 4, padding: "2px 8px", fontSize: 10, color: "#6b7280" }}>
+                              {cat}: {fmt(amt)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {isExpanded && (
+                      <div style={{ marginTop: 12, borderTop: "1px solid #e0ece0", paddingTop: 12 }}>
+                        {data.txs.slice(0,20).map(t => {
+                          const acc = accounts.find(a => a.id === t.accountId);
+                          return (
+                            <div key={t.id} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #f0f5f0", fontSize: 12 }}>
+                              <div>
+                                <div style={{ fontWeight: 500 }}>{t.desc}</div>
+                                <div style={{ fontSize: 10, color: "#9ca3af" }}>{t.date} · {t.category} {acc ? "· " + acc.name : ""}</div>
+                                {t.note && <div style={{ fontSize: 10, color: "#6b7280" }}>→ {t.note}</div>}
+                              </div>
+                              <span style={{ fontWeight: 700, color: t.type === "income" ? "#00b894" : "#ff6b6b" }}>
+                                {t.type === "income" ? "+" : "-"}{fmt(t.amount)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {data.txs.length > 20 && <div style={{ textAlign: "center", fontSize: 11, color: "#9ca3af", paddingTop: 6 }}>ועוד {data.txs.length - 20} עסקאות...</div>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+                {/* SAVINGS */}
         {tab === "savings" && (() => {
           const savingTypes = ["קרן פנסיה", "גמל להשקעה", "קרן השתלמות", "ביטוח מנהלים", "פוליסת חיסכון", "תיק השקעות", "מניות", "נדל״ן", "קריפטו", "אחר"];
           const addSaving = () => {
