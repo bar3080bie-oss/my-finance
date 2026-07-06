@@ -151,7 +151,10 @@ export default function App() {
             existingIds.add(importId);
             const amount = credit > 0 ? credit : debit;
             const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות");
-            const isLoanPayment = /הלוואה|פיגור|קרן|ריבית על מסגרת|זיכוי בגין הטבה|החזר צ'ק|החזר אשראי|זיכוי אשראי|החזר חיוב/.test(String(desc));
+            const isLoanPayment = /הלוואה|פיגור|קרן|ריבית על מסגרת|ריבית על הלוואה|ריבית בגין|זיכוי בגין הטבה|החזר אשראי|זיכוי אשראי|החזר חיוב|כרטיסי אשראי לי/.test(String(desc));
+            // סינון תשלומי כרטיסי אשראי מהוצאות הבנק (כבר נספרים בכרטיסים)
+            const isCreditCardPayment = /כרטיסי אשראי|ויזה|ישראכרט|כאל|מאסטרכארד|דיירקט|עפ"י הרשאה כאל|הרשאה לחיוב/.test(String(desc));
+            if (isCreditCardPayment) return;
             const type = credit > 0 ? (isLoanPayment ? "expense" : "income") : "expense";
             const category = isCommission ? "עמלות" : "אחר";
             const _parseDate = (ds) => {
