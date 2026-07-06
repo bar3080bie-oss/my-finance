@@ -908,15 +908,18 @@ export default function App() {
                   <button onClick={() => setCardNav(p => ({ ...p, cardId: null, month: null }))} style={{ ...S.btnSm, fontSize: 14 }}>‹</button>
                   <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>{currentCard?.name} ****{currentCard?.last4}</h2>
                 </div>
-                <label style={{ ...S.btn, display: "inline-block", cursor: "pointer", marginBottom: 14 }}>
-                  📂 העלי קובץ Excel
-                  <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => {
+                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                  <label style={{ ...S.btn, cursor: "pointer" }}>
+                    📂 העלי קובץ Excel
+                    <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => {
                     if (!e.target.files[0]) return;
                     setPendingFile(e.target.files[0]);
                     setBillingMonthInput(new Date().toISOString().substring(0,7));
                     setShowMonthPicker(true);
                   }} />
-                </label>
+                  </label>
+                  <button onClick={() => { if (window.confirm("למחוק את כל עסקאות הכרטיס?")) setTransactions(prev => prev.filter(t => t.accountId !== cardNav.cardId)); }} style={S.btnDanger}>🗑️ נקה הכל</button>
+                </div>
                 {availableMonths.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>אין נתונים עדיין — העלי קובץ Excel</div>}
 
                 {/* חיוב אחרון */}
