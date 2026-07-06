@@ -154,23 +154,30 @@ export default function App() {
             const type = credit > 0 ? "income" : "expense";
             const category = isCommission ? "עמלות" : "אחר";
             let dateFormatted;
-            if (dateStr instanceof Date) {
-              dateFormatted = dateStr.getFullYear() + "-" + String(dateStr.getMonth()+1).padStart(2,"0") + "-" + String(dateStr.getDate()).padStart(2,"0");
-            } else if (typeof dateStr === "number" && dateStr > 40000) {
-              const d = new Date((dateStr - 25569) * 86400 * 1000);
-              dateFormatted = d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
-            } else {
-              const s = String(dateStr || "");
-              const parts = s.includes("/") ? s.split("/") : s.includes("-") ? s.split("-") : null;
-              if (parts && parts.length === 3) {
-                const year = parts[0].length === 4 ? parts[0] : (parts[2].length === 4 ? parts[2] : "20" + parts[2]);
-                const month = parts[0].length === 4 ? parts[1] : parts[1];
-                const day = parts[0].length === 4 ? parts[2] : parts[0];
-                dateFormatted = year + "-" + String(month).padStart(2,"0") + "-" + String(day).padStart(2,"0");
-              } else {
-                dateFormatted = new Date().toISOString().split("T")[0];
+            const _parseDate = (ds) => {
+              if (!ds) return new Date().toISOString().split("T")[0];
+              if (ds instanceof Date) {
+                return ds.getFullYear() + "-" + String(ds.getMonth()+1).padStart(2,"0") + "-" + String(ds.getDate()).padStart(2,"0");
               }
-            }
+              const s = String(ds);
+              // ISO string with T - add Israel offset (UTC+2 winter, UTC+3 summer)
+              if (s.includes("T")) {
+                const d = new Date(s);
+                // Add hours to compensate for Israel timezone
+                const fixed = new Date(d.getTime() + (d.getUTCMonth() >= 3 && d.getUTCMonth() <= 9 ? 3 : 2) * 3600000);
+                return fixed.getUTCFullYear() + "-" + String(fixed.getUTCMonth()+1).padStart(2,"0") + "-" + String(fixed.getUTCDate()).padStart(2,"0");
+              }
+              if (typeof ds === "number" && ds > 40000) {
+                const d = new Date((ds - 25569) * 86400 * 1000);
+                return d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
+              }
+              const parts = s.includes("/") ? s.split("/") : null;
+              if (parts && parts.length === 3) {
+                return "20" + parts[2] + "-" + parts[1].padStart(2,"0") + "-" + parts[0].padStart(2,"0");
+              }
+              return new Date().toISOString().split("T")[0];
+            };
+            const dateFormatted = _parseDate(dateStr);
             if (amount > 0) {
               newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category, desc, date: dateFormatted });
               imported++;
