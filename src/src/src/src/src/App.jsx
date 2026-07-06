@@ -341,9 +341,12 @@ export default function App() {
             return catMap2[ענף] || "אחר";
           };
           const category = smartCat2(desc, ענף);
-          const dateRaw = row[0];
+          const dateRaw = row[isDebit ? 0 : 0];
           let dateFormatted = new Date().toISOString().split("T")[0];
-          if (dateRaw instanceof Date) {
+          if (typeof dateRaw === "string" && dateRaw.includes("T")) {
+            const d = new Date(new Date(dateRaw).getTime() + 4 * 3600000);
+            dateFormatted = d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
+          } else if (dateRaw instanceof Date) {
             dateFormatted = dateRaw.getFullYear() + "-" + String(dateRaw.getMonth()+1).padStart(2,"0") + "-" + String(dateRaw.getDate()).padStart(2,"0");
           } else if (typeof dateRaw === "number" && dateRaw > 40000) {
             const d = new Date((dateRaw - 25569) * 86400 * 1000);
