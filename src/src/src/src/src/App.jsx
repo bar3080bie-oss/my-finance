@@ -543,7 +543,8 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setShowSearch(true)} style={{ background: "#f0f5f0", border: "1px solid #d0e4d0", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#6b7280", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔍</button>
+  <button onClick={() => setShowSearch(true)} style={{ background: "#f0f5f0", border: "1px solid #d0e4d0", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#6b7280", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔍</button>
+          <button onClick={() => { if (window.confirm("למחוק את כל עסקאות הכרטיסים ולהתחיל מחדש?")) { setTransactions(prev => prev.filter(t => !cards.some(c => c.id === t.accountId))); } }} style={{ background: "#fff5f5", border: "1px solid #ffb3b3", borderRadius: 20, padding: "7px 10px", cursor: "pointer", color: "#ff6b6b", fontSize: 11, fontFamily: "inherit" }}>🗑️ נקה כרטיסים</button>
           <button onClick={() => setAiOpen(true)} style={{ background: "#e6faf6", border: "1px solid #00d4aa44", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#00d4aa", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🤖 AI</button>
         </div>
       </header>
