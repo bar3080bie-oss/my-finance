@@ -101,9 +101,16 @@ export default function App() {
   };
 
   const deleteAccount = (id) => {
-    if (window.confirm("למחוק את החשבון וכל העסקאות שלו?")) {
+    const acc = accounts.find(a => a.id === id);
+    const isBank = acc && acc.type === "bank";
+    const msg = isBank ? "למחוק את החשבון ועסקאותיו? (הכרטיסים ישארו)" : "למחוק כרטיס זה וכל עסקאותיו?";
+    if (window.confirm(msg)) {
       setAccounts(prev => prev.filter(a => a.id !== id));
       setTransactions(prev => prev.filter(t => t.accountId !== id));
+      // כרטיסים המשויכים לחשבון זה ישארו (רק מנתקים)
+      if (isBank) {
+        setAccounts(prev => prev.map(a => a.bankId === id ? { ...a, bankId: "" } : a));
+      }
     }
   };
 
