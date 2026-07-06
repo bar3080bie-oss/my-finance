@@ -163,7 +163,7 @@ export default function App() {
               if (s.includes("T")) {
                 const d = new Date(s);
                 // Add hours to compensate for Israel timezone
-                const fixed = new Date(d.getTime() + (d.getUTCMonth() >= 3 && d.getUTCMonth() <= 9 ? 3 : 2) * 3600000);
+                const fixed = new Date(d.getTime() + (d.getUTCMonth() >= 3 && d.getUTCMonth() <= 9 ? 4 : 3) * 3600000);
                 return fixed.getUTCFullYear() + "-" + String(fixed.getUTCMonth()+1).padStart(2,"0") + "-" + String(fixed.getUTCDate()).padStart(2,"0");
               }
               if (typeof ds === "number" && ds > 40000) {
