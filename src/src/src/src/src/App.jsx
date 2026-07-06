@@ -151,7 +151,8 @@ export default function App() {
             existingIds.add(importId);
             const amount = credit > 0 ? credit : debit;
             const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות");
-            const type = credit > 0 ? "income" : "expense";
+            const isLoanPayment = /הלוואה|פיגור|קרן|ריבית על מסגרת|זיכוי בגין הטבה|החזר צ'ק|החזר אשראי|זיכוי אשראי|החזר חיוב/.test(String(desc));
+            const type = credit > 0 ? (isLoanPayment ? "expense" : "income") : "expense";
             const category = isCommission ? "עמלות" : "אחר";
             const _parseDate = (ds) => {
               if (!ds) return new Date().toISOString().split("T")[0];
