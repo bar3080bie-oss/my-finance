@@ -286,7 +286,7 @@ export default function App() {
         let imported = 0;
         const newTxs = [];
         const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
-        const isKal = rows.some(r => Array.isArray(r) && r[1] && String(r[1]).trim() === "שם בית עסק");
+        const isKal = rows.some(r => Array.isArray(r) && r[1] && String(r[1]).trim().replace(/\s+/g," ") === "שם בית עסק");
         const isDebit = rows.some(r => r && String(r[0]||"").includes("תאריך עסקה") && String(r[1]||"").includes("תאריך חיוב"));
         const descCol = isDebit ? 2 : 1;
         const amountCol = isDebit ? 4 : 3;
