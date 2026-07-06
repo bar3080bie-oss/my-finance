@@ -57,6 +57,11 @@ export default function App() {
     try { const s = localStorage.getItem("mf_investments"); return s ? JSON.parse(s) : []; } catch { return []; }
   });
   const [showAddSaving, setShowAddSaving] = useState(false);
+  const [stocks, setStocks] = useState(() => {
+    try { const s = localStorage.getItem("mf_stocks"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [showAddStock, setShowAddStock] = useState(false);
+  const [newStock, setNewStock] = useState({ symbol: "", name: "", shares: "", avgPrice: "", currency: "USD" });
   const [newSaving, setNewSaving] = useState({ name: "", type: "קרן פנסיה", owner: "", amount: "", company: "" });
   const [loans, setLoans] = useState(() => {
     try { const s = localStorage.getItem("mf_loans"); return s ? JSON.parse(s) : []; } catch { return []; }
@@ -84,6 +89,7 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem("mf_transactions", JSON.stringify(transactions)); } catch {} }, [transactions]);
   useEffect(() => { try { localStorage.setItem("mf_loans", JSON.stringify(loans)); } catch {} }, [loans]);
   useEffect(() => { try { localStorage.setItem("mf_savings", JSON.stringify(savings)); } catch {} }, [savings]);
+  useEffect(() => { try { localStorage.setItem("mf_stocks", JSON.stringify(stocks)); } catch {} }, [stocks]);
   useEffect(() => { try { localStorage.setItem("mf_investments", JSON.stringify(investments)); } catch {} }, [investments]);
 
   const banks = accounts.filter(a => a.type === "bank");
@@ -544,14 +550,14 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
   <button onClick={() => setShowSearch(true)} style={{ background: "#f0f5f0", border: "1px solid #d0e4d0", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#6b7280", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔍</button>
-          <button onClick={() => { if (window.confirm("למחוק את כל עסקאות הכרטיסים ולהתחיל מחדש?")) { setTransactions(prev => prev.filter(t => !cards.some(c => c.id === t.accountId))); } }} style={{ background: "#fff5f5", border: "1px solid #ffb3b3", borderRadius: 20, padding: "7px 10px", cursor: "pointer", color: "#ff6b6b", fontSize: 11, fontFamily: "inherit" }}>🗑️ נקה כרטיסים</button>
+          
           <button onClick={() => setAiOpen(true)} style={{ background: "#e6faf6", border: "1px solid #00d4aa44", borderRadius: 20, padding: "7px 14px", cursor: "pointer", color: "#00d4aa", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🤖 AI</button>
         </div>
       </header>
 
       {/* Tabs */}
       <nav style={{ display: "flex", background: "#f0f5f0", borderBottom: "1px solid #1a3a1a", overflowX: "auto" }}>
-        {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }, { id: "loans", label: "הלוואות", icon: "🏧" }, { id: "savings", label: "חסכונות", icon: "💎" }, { id: "monthly", label: "חודשי", icon: "📅" }].map(t => (
+        {[{ id: "dashboard", label: "סקירה", icon: "📊" }, { id: "accounts", label: "חשבונות", icon: "🏦" }, { id: "cards", label: "כרטיסים", icon: "💳" }, { id: "transactions", label: "עסקאות", icon: "📋" }, { id: "loans", label: "הלוואות", icon: "🏧" }, { id: "savings", label: "השקעות", icon: "📈" }, { id: "monthly", label: "חודשי", icon: "📅" }].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "12px 16px", border: "none", cursor: "pointer", background: "transparent", color: tab === t.id ? "#00d4aa" : "#6b7280", borderBottom: tab === t.id ? "2px solid #00d4aa" : "2px solid transparent", fontWeight: tab === t.id ? 700 : 400, fontSize: 12, whiteSpace: "nowrap", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
             {t.icon} {t.label}
           </button>
@@ -789,6 +795,7 @@ export default function App() {
                   <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>💳 כרטיסי אשראי</h2>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={reclassifyAll} style={{ ...S.btnSm, background: "#e6faf6", border: "1px solid #00d4aa55", color: "#00b894" }}>🤖 סווג הכל</button>
+                    <button onClick={() => { if (window.confirm("למחוק את כל עסקאות הכרטיסים?")) setTransactions(prev => prev.filter(t => !cards.some(c => c.id === t.accountId))); }} style={S.btnDanger}>🗑️ נקה</button>
                     <button onClick={() => { setNewAccount({ type: "card", name: "", last4: "", color: "#f59e0b", bankId: "" }); setShowAddAccount(true); }} style={S.btn}>+ הוסף כרטיס</button>
                   </div>
                 </div>
@@ -1433,34 +1440,40 @@ export default function App() {
                 return (
                   <div key={key} style={{ ...S.card, marginBottom: 10, border: `1px solid ${bal >= 0 ? "#00d4aa33" : "#ff6b6b33"}` }}>
                     <div onClick={() => setExpandedMonth(isExpanded ? null : key)} style={{ cursor: "pointer" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15 }}>{monthNames[parseInt(mo)-1]} {y}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <div style={{ fontWeight: 800, fontSize: 16 }}>{monthNames[parseInt(mo)-1]} {y}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontWeight: 800, fontSize: 16, color: bal >= 0 ? "#00b894" : "#ff6b6b" }}>{fmt(bal)}</span>
-                          <span style={{ color: "#9ca3af" }}>{isExpanded ? "▲" : "▼"}</span>
+                          <div style={{ textAlign: "left" }}>
+                            <div style={{ fontSize: 10, color: "#9ca3af" }}>מאזן חודשי</div>
+                            <div style={{ fontWeight: 800, fontSize: 18, color: bal >= 0 ? "#00b894" : "#ff6b6b" }}>{fmt(bal)}</div>
+                          </div>
+                          <span style={{ color: "#9ca3af", fontSize: 18 }}>{isExpanded ? "▲" : "▼"}</span>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                        <div style={{ flex: 1, background: "#e6faf6", borderRadius: 8, padding: "6px 10px", minWidth: 80 }}>
-                          <div style={{ fontSize: 10, color: "#9ca3af" }}>⬆️ הכנסות</div>
-                          <div style={{ fontWeight: 700, color: "#00b894", fontSize: 13 }}>{fmt(data.income)}</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                        <div style={{ background: "#e6faf6", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 3 }}>⬆️ הכנסות</div>
+                          <div style={{ fontWeight: 700, color: "#00b894", fontSize: 14 }}>{fmt(data.income)}</div>
                         </div>
-                        <div style={{ flex: 1, background: "#fff5f5", borderRadius: 8, padding: "6px 10px", minWidth: 80 }}>
-                          <div style={{ fontSize: 10, color: "#9ca3af" }}>🏦 הוצאות בנק</div>
-                          <div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 13 }}>{fmt(data.bankExpense)}</div>
+                        <div style={{ background: "#fff0f0", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 3 }}>🏦 הוצ׳ בנק</div>
+                          <div style={{ fontWeight: 700, color: "#ff6b6b", fontSize: 14 }}>{fmt(data.bankExpense)}</div>
                         </div>
-                        <div style={{ flex: 1, background: "#fff8ee", borderRadius: 8, padding: "6px 10px", minWidth: 80 }}>
-                          <div style={{ fontSize: 10, color: "#9ca3af" }}>💳 כרטיסים</div>
-                          <div style={{ fontWeight: 700, color: "#f59e0b", fontSize: 13 }}>{fmt(data.cardExpense)}</div>
+                        <div style={{ background: "#fff8ee", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                          <div style={{ fontSize: 10, color: "#6b7280", marginBottom: 3 }}>💳 כרטיסים</div>
+                          <div style={{ fontWeight: 700, color: "#f59e0b", fontSize: 14 }}>{fmt(data.cardExpense)}</div>
                         </div>
                       </div>
                       {topCats.length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {topCats.map(([cat, amt]) => (
-                            <div key={cat} style={{ background: "#f0f5f0", borderRadius: 4, padding: "2px 8px", fontSize: 10, color: "#6b7280" }}>
-                              {cat}: {fmt(amt)}
-                            </div>
-                          ))}
+                        <div>
+                          <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 5 }}>הוצאות מובילות:</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                            {topCats.map(([cat, amt]) => (
+                              <div key={cat} style={{ background: "#f5f7f5", border: "1px solid #e0ece0", borderRadius: 6, padding: "3px 8px", fontSize: 11 }}>
+                                <span style={{ color: "#6b7280" }}>{cat} </span><span style={{ fontWeight: 600, color: "#ff6b6b" }}>{fmt(amt)}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1494,7 +1507,7 @@ export default function App() {
 
                 {/* SAVINGS */}
         {tab === "savings" && (() => {
-          const savingTypes = ["קרן פנסיה", "גמל להשקעה", "קרן השתלמות", "ביטוח מנהלים", "פוליסת חיסכון", "תיק השקעות", "מניות", "נדל״ן", "קריפטו", "אחר"];
+          const savingTypes = ["קרן פנסיה", "גמל להשקעה", "קרן השתלמות", "ביטוח מנהלים", "פוליסת חיסכון", "תיק השקעות", "מניות", "אג"ח", "נדל"ן", "קריפטו", "אינטרקטיב ברוקרס", "אחר"];
           const addSaving = () => {
             if (!newSaving.name || !newSaving.amount) return;
             setSavings(prev => [...prev, { ...newSaving, id: "sav" + Date.now(), amount: Number(newSaving.amount) }]);
@@ -1506,7 +1519,7 @@ export default function App() {
           return (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>💎 חסכונות והשקעות</h2>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>📈 השקעות וחסכונות</h2>
                 <button onClick={() => setShowAddSaving(true)} style={S.btn}>+ הוסף</button>
               </div>
               {savings.length > 0 && (
@@ -1515,6 +1528,17 @@ export default function App() {
                   <div style={{ fontSize: 28, fontWeight: 900, color: "#a78bfa" }}>{fmt(totalSavingsAll)}</div>
                 </div>
               )}
+              {/* כפתור העלאת PDF */}
+              <label style={{ ...S.btn, display: "inline-block", cursor: "pointer", marginBottom: 14, background: "linear-gradient(135deg, #a78bfa, #8b5cf6)" }}>
+                📄 העלי דוח PDF
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg" style={{ display: "none" }} onChange={e => {
+                  if (!e.target.files[0]) return;
+                  setImportMsg("📄 PDF הועלה — הזיני נתונים ידנית מהדוח");
+                  setTimeout(() => setImportMsg(""), 5000);
+                  setShowAddSaving(true);
+                }} />
+              </label>
+
               {showAddSaving && (
                 <div style={{ ...S.card, border: "1px solid #a78bfa44", marginBottom: 14 }}>
                   <div style={{ fontWeight: 700, marginBottom: 12 }}>חיסכון/השקעה חדשה</div>
@@ -1533,7 +1557,62 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {savings.length === 0 && !showAddSaving && <div style={{ textAlign: "center", padding: 60, color: "#9ca3af" }}><div style={{ fontSize: 40, marginBottom: 12 }}>💎</div><div>הוסיפי חסכונות והשקעות</div></div>}
+              {savings.length === 0 && !showAddSaving && stocks.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}><div style={{ fontSize: 40, marginBottom: 12 }}>📈</div><div>הוסיפי השקעות וחסכונות</div></div>}
+
+              {/* מניות אינטרקטיב ברוקרס */}
+              {(stocks.length > 0 || showAddStock) && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "#0099ff" }}>📊 אינטרקטיב ברוקרס</div>
+                    <button onClick={() => setShowAddStock(true)} style={S.btnSm}>+ הוסף מניה</button>
+                  </div>
+                  {showAddStock && (
+                    <div style={{ ...S.card, border: "1px solid #0099ff44", marginBottom: 10 }}>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                          <input value={newStock.symbol} onChange={e => setNewStock(p => ({ ...p, symbol: e.target.value.toUpperCase() }))} placeholder="סימבול (AAPL)" style={S.input} />
+                          <input value={newStock.name} onChange={e => setNewStock(p => ({ ...p, name: e.target.value }))} placeholder="שם החברה" style={S.input} />
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                          <input value={newStock.shares} onChange={e => setNewStock(p => ({ ...p, shares: e.target.value }))} placeholder="כמות מניות" type="number" style={S.input} />
+                          <input value={newStock.avgPrice} onChange={e => setNewStock(p => ({ ...p, avgPrice: e.target.value }))} placeholder="מחיר ממוצע $" type="number" style={S.input} />
+                          <select value={newStock.currency} onChange={e => setNewStock(p => ({ ...p, currency: e.target.value }))} style={S.input}>
+                            <option value="USD">USD $</option>
+                            <option value="ILS">ILS ₪</option>
+                          </select>
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={() => { if (!newStock.symbol || !newStock.shares) return; setStocks(prev => [...prev, { ...newStock, id: "stk" + Date.now(), shares: Number(newStock.shares), avgPrice: Number(newStock.avgPrice) }]); setNewStock({ symbol: "", name: "", shares: "", avgPrice: "", currency: "USD" }); setShowAddStock(false); }} style={{ ...S.btn, flex: 1 }}>שמור</button>
+                          <button onClick={() => setShowAddStock(false)} style={{ ...S.btnGhost, flex: 1 }}>ביטול</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {stocks.map(stk => (
+                    <div key={stk.id} style={{ ...S.card, border: "1px solid #0099ff33", marginBottom: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: "#0099ff" }}>{stk.symbol}</div>
+                          <div style={{ fontSize: 12, color: "#6b7280" }}>{stk.name} · {stk.shares} מניות</div>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>מחיר ממוצע: {stk.currency === "USD" ? "$" : "₪"}{stk.avgPrice}</div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ textAlign: "left" }}>
+                            <div style={{ fontSize: 10, color: "#9ca3af" }}>שווי</div>
+                            <div style={{ fontWeight: 700, color: "#0099ff", fontSize: 15 }}>{stk.currency === "USD" ? "$" : "₪"}{(stk.shares * stk.avgPrice).toFixed(0)}</div>
+                          </div>
+                          <button onClick={() => setStocks(prev => prev.filter(s => s.id !== stk.id))} style={S.btnDanger}>🗑️</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {stocks.length === 0 && !showAddStock && (
+                <div style={{ ...S.card, border: "1px dashed #0099ff44", textAlign: "center", padding: 16, cursor: "pointer" }} onClick={() => setShowAddStock(true)}>
+                  <div style={{ color: "#0099ff", fontSize: 13 }}>+ הוסף מניות מאינטרקטיב ברוקרס</div>
+                </div>
+              )}
               {Object.entries(byOwner).map(([owner, ownerSavings]) => (
                 <div key={owner} style={{ marginBottom: 14 }}>
                   <div style={{ fontWeight: 700, fontSize: 12, color: "#6b7280", marginBottom: 8 }}>👤 {owner}</div>
