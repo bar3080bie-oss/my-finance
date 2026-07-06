@@ -724,7 +724,15 @@ export default function App() {
                     <button onClick={() => editAccount(acc)} style={S.btnSm}>✏️ ערוך</button>
                     <button onClick={() => deleteAccount(acc.id)} style={S.btnDanger}>🗑️ מחק</button>
                     <button onClick={() => { setNewTx(p => ({ ...p, accountId: acc.id })); setShowAddTx(true); }} style={S.btnSm}>+ עסקה</button>
-                    <label style={{ ...S.btnSm, cursor: "pointer" }}>📂 Excel<input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) importExcel(e.target.files[0], acc.id); }} /></label>
+                    <label style={{ ...S.btnSm, cursor: "pointer" }}>
+                      📂 Excel
+                      <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => {
+                        if (e.target.files[0]) {
+                          setTransactions(prev => prev.filter(t => t.accountId !== acc.id));
+                          setTimeout(() => importExcel(e.target.files[0], acc.id), 100);
+                        }
+                      }} />
+                    </label>
                   </div>
 
                   {/* Recent transactions */}
