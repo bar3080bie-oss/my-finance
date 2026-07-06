@@ -73,6 +73,13 @@ export default function App() {
   const fileInputRef = useRef(null);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [aiMessages]);
+  // נקה עסקאות של כרטיסים שנמחקו
+  useEffect(() => {
+    const ids = new Set(accounts.map(a => a.id));
+    if (transactions.some(t => !ids.has(t.accountId))) {
+      setTransactions(prev => prev.filter(t => ids.has(t.accountId)));
+    }
+  }, [accounts]);
   useEffect(() => { try { localStorage.setItem("mf_accounts", JSON.stringify(accounts)); } catch {} }, [accounts]);
   useEffect(() => { try { localStorage.setItem("mf_transactions", JSON.stringify(transactions)); } catch {} }, [transactions]);
   useEffect(() => { try { localStorage.setItem("mf_loans", JSON.stringify(loans)); } catch {} }, [loans]);
@@ -285,7 +292,8 @@ export default function App() {
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
         let imported = 0;
         const newTxs = [];
-        const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
+        // אל תבדוק importIds - תמיד העלה מחדש
+        const existingIds = new Set();
         const isKal = rows.some(r => Array.isArray(r) && r[1] && String(r[1]).trim().replace(/\s+/g," ") === "שם בית עסק");
         const isDebit = rows.some(r => r && String(r[0]||"").includes("תאריך עסקה") && String(r[1]||"").includes("תאריך חיוב"));
         const descCol = isDebit ? 2 : 1;
@@ -344,7 +352,8 @@ export default function App() {
         // AI categorization for uncategorized items
         const uncategorized = newTxs.filter(t => t.category === "אחר");
         if (uncategorized.length > 0) {
-          setTransactions(prev => [...prev.filter(t => !(t.accountId === accountId && t.billingMonth === billingMonth)), ...newTxs]);
+          // נקה עסקאות קיימות לאותו כרטיס וחודש לפני העלאה
+        setTransactions(prev => [...prev.filter(t => t.accountId !== accountId || t.billingMonth !== billingMonth), ...newTxs]);
           setImportMsg("🤖 מסווג " + uncategorized.length + " עסקאות עם AI...");
           const merchants = [...new Set(uncategorized.map(t => t.desc))];
           fetch("https://api.anthropic.com/v1/messages", {
@@ -372,7 +381,8 @@ export default function App() {
             } catch { setImportMsg("✅ יובאו " + imported + " עסקאות"); setTimeout(() => setImportMsg(""), 4000); }
           }).catch(() => { setImportMsg("✅ יובאו " + imported + " עסקאות"); setTimeout(() => setImportMsg(""), 4000); });
         } else {
-          setTransactions(prev => [...prev.filter(t => !(t.accountId === accountId && t.billingMonth === billingMonth)), ...newTxs]);
+          // נקה עסקאות קיימות לאותו כרטיס וחודש לפני העלאה
+        setTransactions(prev => [...prev.filter(t => t.accountId !== accountId || t.billingMonth !== billingMonth), ...newTxs]);
           setImportMsg("✅ יובאו " + imported + " עסקאות לחודש " + billingMonth);
           setTimeout(() => setImportMsg(""), 4000);
         }
