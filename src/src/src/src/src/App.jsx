@@ -155,9 +155,7 @@ export default function App() {
             const category = isCommission ? "עמלות" : "אחר";
             let dateFormatted;
             if (dateStr instanceof Date) {
-              // Add 3 hours to fix Israel timezone offset
-              const d = new Date(dateStr.getTime() + 3 * 60 * 60 * 1000);
-              dateFormatted = d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
+              dateFormatted = dateStr.getFullYear() + "-" + String(dateStr.getMonth()+1).padStart(2,"0") + "-" + String(dateStr.getDate()).padStart(2,"0");
             } else if (typeof dateStr === "number" && dateStr > 40000) {
               const d = new Date((dateStr - 25569) * 86400 * 1000);
               dateFormatted = d.getUTCFullYear() + "-" + String(d.getUTCMonth()+1).padStart(2,"0") + "-" + String(d.getUTCDate()).padStart(2,"0");
