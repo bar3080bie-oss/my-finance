@@ -1507,7 +1507,7 @@ export default function App() {
 
                 {/* SAVINGS */}
         {tab === "savings" && (() => {
-          const savingTypes = ["קרן פנסיה", "גמל להשקעה", "קרן השתלמות", "ביטוח מנהלים", "פוליסת חיסכון", "תיק השקעות", "מניות", "אג"ח", "נדל"ן", "קריפטו", "אינטרקטיב ברוקרס", "אחר"];
+          const savingTypes = ["קרן פנסיה", "גמל להשקעה", "קרן השתלמות", "ביטוח מנהלים", "פוליסת חיסכון", "תיק השקעות", "מניות", "אגח", "נדלן", "קריפטו", "אינטרקטיב ברוקרס", "אחר"];
           const addSaving = () => {
             if (!newSaving.name || !newSaving.amount) return;
             setSavings(prev => [...prev, { ...newSaving, id: "sav" + Date.now(), amount: Number(newSaving.amount) }]);
