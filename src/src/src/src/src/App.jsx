@@ -153,7 +153,6 @@ export default function App() {
             const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות");
             const type = credit > 0 ? "income" : "expense";
             const category = isCommission ? "עמלות" : "אחר";
-            let dateFormatted;
             const _parseDate = (ds) => {
               if (!ds) return new Date().toISOString().split("T")[0];
               if (ds instanceof Date) {
