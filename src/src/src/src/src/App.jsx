@@ -642,12 +642,23 @@ export default function App() {
             {banks.length > 0 && (
               <div style={{ ...S.card, padding: 12, marginBottom: 10 }}>
                 <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8, color: "#00b894" }}>🏦 חשבונות</div>
-                {banks.map(acc => (
-                  <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #e8f0e8" }}>
-                    <span style={{ fontSize: 12 }}>{acc.name} <span style={{ color: "#9ca3af", fontSize: 11 }}>****{acc.last4}</span></span>
-                    <span style={{ fontWeight: 700, color: acc.balance >= 0 ? "#00b894" : "#ff6b6b", fontSize: 13 }}>{fmt(acc.balance)}</span>
-                  </div>
-                ))}
+                {banks.map(acc => {
+                  const bankTxs = transactions.filter(t => t.accountId === acc.id);
+                  const bankIncome = bankTxs.filter(t => t.type === "income").reduce((s,t) => s+t.amount, 0);
+                  const bankExpense = bankTxs.filter(t => t.type === "expense").reduce((s,t) => s+t.amount, 0);
+                  return (
+                    <div key={acc.id} style={{ padding: "8px 0", borderBottom: "1px solid #e8f0e8" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600 }}>{acc.name} <span style={{ color: "#9ca3af", fontSize: 11 }}>****{acc.last4}</span></span>
+                        <span style={{ fontWeight: 700, color: acc.balance >= 0 ? "#00b894" : "#ff6b6b", fontSize: 13 }}>{fmt(acc.balance)}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#9ca3af" }}>
+                        <span>⬆️ {fmt(bankIncome)}</span>
+                        <span>⬇️ {fmt(bankExpense)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -655,7 +666,7 @@ export default function App() {
             {cards.length > 0 && (
               <div style={{ ...S.card, padding: 12, marginBottom: 10 }}>
                 <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8, color: "#f59e0b" }}>💳 כרטיסים</div>
-                {cards.map(acc => {
+                {cards.filter(acc => transactions.some(t => t.accountId === acc.id)).map(acc => {
                   const cardTotal = transactions.filter(t => t.accountId === acc.id && t.type === "expense").reduce((s,t) => s+t.amount, 0);
                   return (
                     <div key={acc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #e8f0e8" }}>
@@ -914,7 +925,16 @@ export default function App() {
           // Level 3: בחר חודש
           const currentCard = cards.find(c => c.id === cardNav.cardId);
           const cardAllTxs = transactions.filter(t => t.accountId === cardNav.cardId);
-          const availableMonths = [...new Set(cardAllTxs.map(t => t.billingMonth || t.date?.substring(0,7)).filter(Boolean))].sort().reverse();
+          const txMonths = new Set(cardAllTxs.map(t => t.billingMonth || t.date?.substring(0,7)).filter(Boolean));
+          const allMonthsList = [];
+          const now = new Date();
+          for (let y = 2026; y <= now.getFullYear(); y++) {
+            const maxM = y === now.getFullYear() ? now.getMonth() + 1 : 12;
+            for (let m = 1; m <= maxM; m++) {
+              allMonthsList.push(y + "-" + String(m).padStart(2,"0"));
+            }
+          }
+          const availableMonths = allMonthsList; // ינואר ראשון
 
           if (!cardNav.month) {
             return (
@@ -957,11 +977,12 @@ export default function App() {
                   const mTxs = cardAllTxs.filter(t => (t.billingMonth || t.date?.substring(0,7)) === m);
                   const total = mTxs.reduce((s,t) => s+t.amount, 0);
                   const [y, mo] = m.split("-");
+                  const isEmpty = mTxs.length === 0;
                   return (
-                    <div key={m} style={{ ...S.card, border: `1px solid ${currentCard?.color}33`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div onClick={() => setCardNav(p => ({ ...p, month: m }))} style={{ flex: 1, cursor: "pointer" }}>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{monthNames[parseInt(mo)-1]} {y}</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{mTxs.length} עסקאות</div>
+                    <div key={m} style={{ ...S.card, border: `1px solid ${isEmpty ? "#e0e0e033" : currentCard?.color + "33"}`, opacity: isEmpty ? 0.6 : 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div onClick={() => !isEmpty && setCardNav(p => ({ ...p, month: m }))} style={{ flex: 1, cursor: isEmpty ? "default" : "pointer" }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: isEmpty ? "#9ca3af" : "#1a2e1a" }}>{monthNames[parseInt(mo)-1]} {y}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{isEmpty ? "אין חיובים" : mTxs.length + " עסקאות"}</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: "#ff6b6b", fontSize: 16 }}>{fmt(total)}</span>
