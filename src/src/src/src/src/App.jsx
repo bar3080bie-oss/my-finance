@@ -95,8 +95,12 @@ export default function App() {
   const banks = accounts.filter(a => a.type === "bank");
   const cards = accounts.filter(a => a.type === "card");
   const bankIds = new Set(accounts.filter(a => a.type === "bank").map(a => a.id));
+  // הכנסות = כל מה שנכנס לבנק
   const totalIncome = transactions.filter(t => t.type === "income" && bankIds.has(t.accountId)).reduce((s, t) => s + t.amount, 0);
+  // הוצאות אמיתיות = כל מה שיצא מהבנק (כולל תשלומי אשראי)
   const totalExpenses = transactions.filter(t => t.type === "expense" && bankIds.has(t.accountId)).reduce((s, t) => s + t.amount, 0);
+  // הוצאות בנק ללא תשלומי אשראי (לתצוגה נפרדת)
+  const totalBankOnlyExpenses = transactions.filter(t => t.type === "expense" && bankIds.has(t.accountId) && !/כרטיסי אשראי|ויזה|ישראכרט|כאל|מאסטרכארד|דיירקט|עפ"י הרשאה כאל|הרשאה לחיוב/.test(t.desc || "")).reduce((s, t) => s + t.amount, 0);
   const balance = totalIncome - totalExpenses;
   const expByCat = transactions.filter(t => t.type === "expense").reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + t.amount; return acc; }, {});
 
@@ -173,11 +177,7 @@ export default function App() {
             const isCommission = desc.includes("עמלת") || desc.includes("ע.ערוץ") || desc.includes("עמלות");
             const isLoanPayment = /הלוואה|פיגור|קרן|ריבית על מסגרת|ריבית על הלוואה|ריבית בגין|זיכוי בגין הטבה|החזר אשראי|זיכוי אשראי|החזר חיוב|כרטיסי אשראי לי/.test(String(desc));
             // סינון תשלומי כרטיסי אשראי מהוצאות הבנק (כבר נספרים בכרטיסים)
-            // סינון תשלומי אשראי רק בחשבון בנק (לא בכרטיסים)
-            if (!isKal) {
-              const isCreditCardPayment = /כרטיסי אשראי|ויזה|ישראכרט|כאל|מאסטרכארד|דיירקט|עפ"י הרשאה כאל|הרשאה לחיוב/.test(String(desc));
-              if (isCreditCardPayment) return;
-            }
+            // לא מסננים תשלומי אשראי - הם חלק מהוצאות הבנק
             const type = credit > 0 ? (isLoanPayment ? "expense" : "income") : "expense";
             const category = isCommission ? "עמלות" : "אחר";
             const _parseDate = (ds) => {
