@@ -148,8 +148,6 @@ export default function App() {
   };
 
   const importExcel = (file, accountId) => {
-    // נקה עסקאות קיימות של חשבון זה לפני ייבוא חדש
-    setTransactions(prev => prev.filter(t => t.accountId !== accountId));
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -283,7 +281,7 @@ export default function App() {
         if (lastBalance !== null) {
           setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, balance: lastBalance } : a));
         }
-        setTransactions(prev => [...prev, ...newTxs]);
+        setTransactions(prev => [...prev.filter(t => t.accountId !== accountId), ...newTxs]);
         setImportMsg(`✅ יובאו ${imported} עסקאות בהצלחה!`);
         setTimeout(() => setImportMsg(""), 4000);
       } catch(err) { setImportMsg("❌ שגיאה בקריאת הקובץ: " + err.message); setTimeout(() => setImportMsg(""), 5000); }
