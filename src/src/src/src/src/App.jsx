@@ -205,7 +205,18 @@ export default function App() {
             };
             const dateFormatted = _parseDate(dateStr);
             if (amount > 0) {
-              newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category: type === "income" ? (incomeCategory || "הכנסה אחרת") : category, desc, date: dateFormatted });
+              const finalCategory = type === "income" ? (() => {
+                const d = String(desc);
+                if (/משכורת|שכר/.test(d)) return "משכורת";
+                if (/מילואים|מופ/.test(d)) return "מילואים";
+                if (/ביטוח לאומי/.test(d)) return "ביטוח לאומי";
+                if (/פרילנס|עצמאי|חשבונית/.test(d)) return "פרילנס";
+                if (/שכירות/.test(d)) return "שכירות";
+                if (/קצבה|פנסיה/.test(d)) return "קצבה";
+                if (/החזר|זיכוי/.test(d)) return "החזר";
+                return "הכנסה אחרת";
+              })() : category;
+              newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category: finalCategory, desc, date: dateFormatted });
               imported++;
             }
           } else {
