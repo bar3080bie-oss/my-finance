@@ -640,25 +640,43 @@ export default function App() {
 
             {/* חשבונות */}
             {banks.length > 0 && (
-              <div style={{ ...S.card, padding: 12, marginBottom: 10 }}>
-                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8, color: "#00b894" }}>🏦 חשבונות</div>
+              <div style={{ ...S.card, padding: 14, marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10, color: "#00b894" }}>🏦 חשבונות בנק</div>
                 {banks.map(acc => {
                   const bankTxs = transactions.filter(t => t.accountId === acc.id);
                   const bankIncome = bankTxs.filter(t => t.type === "income").reduce((s,t) => s+t.amount, 0);
                   const bankExpense = bankTxs.filter(t => t.type === "expense").reduce((s,t) => s+t.amount, 0);
                   return (
-                    <div key={acc.id} style={{ padding: "8px 0", borderBottom: "1px solid #e8f0e8" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600 }}>{acc.name} <span style={{ color: "#9ca3af", fontSize: 11 }}>****{acc.last4}</span></span>
-                        <span style={{ fontWeight: 700, color: acc.balance >= 0 ? "#00b894" : "#ff6b6b", fontSize: 13 }}>{fmt(acc.balance)}</span>
+                    <div key={acc.id} style={{ marginBottom: 10, padding: "10px", background: "#f8faf8", borderRadius: 10, border: "1px solid #e0ece0" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>{acc.name} <span style={{ color: "#9ca3af", fontSize: 11 }}>****{acc.last4}</span></span>
+                        <span style={{ fontWeight: 800, color: acc.balance >= 0 ? "#00b894" : "#ff6b6b", fontSize: 15 }}>{fmt(acc.balance)}</span>
                       </div>
-                      <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#9ca3af" }}>
-                        <span>⬆️ {fmt(bankIncome)}</span>
-                        <span>⬇️ {fmt(bankExpense)}</span>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                        <div style={{ background: "#e6faf6", borderRadius: 6, padding: "5px 8px" }}>
+                          <div style={{ fontSize: 9, color: "#6b7280" }}>⬆️ הכנסות</div>
+                          <div style={{ fontWeight: 600, color: "#00b894", fontSize: 12 }}>{fmt(bankIncome)}</div>
+                        </div>
+                        <div style={{ background: "#fff0f0", borderRadius: 6, padding: "5px 8px" }}>
+                          <div style={{ fontSize: 9, color: "#6b7280" }}>⬇️ הוצאות בנק</div>
+                          <div style={{ fontWeight: 600, color: "#ff6b6b", fontSize: 12 }}>{fmt(bankExpense)}</div>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
+                {/* סה"כ שני חשבונות */}
+                {banks.length > 1 && (
+                  <div style={{ borderTop: "1px solid #e0ece0", paddingTop: 8, marginTop: 4 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700 }}>
+                      <span style={{ color: "#6b7280" }}>סה"כ</span>
+                      <div style={{ display: "flex", gap: 12 }}>
+                        <span style={{ color: "#00b894" }}>⬆️ {fmt(totalIncome)}</span>
+                        <span style={{ color: "#ff6b6b" }}>⬇️ {fmt(totalExpenses)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
