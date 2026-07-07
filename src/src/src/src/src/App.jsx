@@ -148,6 +148,8 @@ export default function App() {
   };
 
   const importExcel = (file, accountId) => {
+    // נקה עסקאות קיימות של חשבון זה לפני ייבוא חדש
+    setTransactions(prev => prev.filter(t => t.accountId !== accountId));
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
