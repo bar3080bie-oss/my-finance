@@ -156,7 +156,7 @@ export default function App() {
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
         let imported = 0;
         const newTxs = [];
-        const existingIds = new Set(transactions.map(t => t.importId).filter(Boolean));
+        const existingIds = new Set(); // תמיד ייבוא מחדש
         // זיהוי פורמט
         const isKal = rows.some(r => Array.isArray(r) && r[1] && String(r[1]).trim() === "שם בית עסק");
 
@@ -205,18 +205,7 @@ export default function App() {
             };
             const dateFormatted = _parseDate(dateStr);
             if (amount > 0) {
-              const finalCategory = type === "income" ? (() => {
-                const d = String(desc);
-                if (/משכורת|שכר/.test(d)) return "משכורת";
-                if (/מילואים|מופ/.test(d)) return "מילואים";
-                if (/ביטוח לאומי/.test(d)) return "ביטוח לאומי";
-                if (/פרילנס|עצמאי|חשבונית/.test(d)) return "פרילנס";
-                if (/שכירות/.test(d)) return "שכירות";
-                if (/קצבה|פנסיה/.test(d)) return "קצבה";
-                if (/החזר|זיכוי/.test(d)) return "החזר";
-                return "הכנסה אחרת";
-              })() : category;
-              newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category: finalCategory, desc, date: dateFormatted });
+              newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category: type === "income" ? desc : category, desc, date: dateFormatted });
               imported++;
             }
           } else {
@@ -663,36 +652,37 @@ export default function App() {
                         <span style={{ fontSize: 13, fontWeight: 700 }}>{acc.name} <span style={{ color: "#9ca3af", fontSize: 11 }}>****{acc.last4}</span></span>
                         <span style={{ fontWeight: 800, color: acc.balance >= 0 ? "#00b894" : "#ff6b6b", fontSize: 15 }}>{fmt(acc.balance)}</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
                         <div style={{ background: "#e6faf6", borderRadius: 6, padding: "5px 8px" }}>
                           <div style={{ fontSize: 9, color: "#6b7280" }}>⬆️ הכנסות</div>
                           <div style={{ fontWeight: 600, color: "#00b894", fontSize: 12 }}>{fmt(bankIncome)}</div>
                         </div>
                         <div style={{ background: "#fff0f0", borderRadius: 6, padding: "5px 8px" }}>
-                          <div style={{ fontSize: 9, color: "#6b7280" }}>⬇️ הוצאות בנק</div>
+                          <div style={{ fontSize: 9, color: "#6b7280" }}>⬇️ הוצאות</div>
                           <div style={{ fontWeight: 600, color: "#ff6b6b", fontSize: 12 }}>{fmt(bankExpense)}</div>
                         </div>
                       </div>
+                      {/* פירוט הכנסות לחשבון זה */}
+                      {(() => {
+                        const accIncomeTxs = bankTxs.filter(t => t.type === "income");
+                        const incomeByCat = accIncomeTxs.reduce((a, t) => { a[t.category] = (a[t.category]||0) + t.amount; return a; }, {});
+                        const sorted = Object.entries(incomeByCat).sort((a,b) => b[1]-a[1]);
+                        return sorted.length > 0 ? (
+                          <div style={{ borderTop: "1px solid #e8f5e8", paddingTop: 6 }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: "#00b894", marginBottom: 4 }}>פירוט הכנסות:</div>
+                            {sorted.map(([cat, amt]) => (
+                              <div key={cat} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
+                                <span style={{ color: "#6b7280" }}>{cat}</span>
+                                <span style={{ fontWeight: 600, color: "#00b894" }}>{fmt(amt)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   );
                 })}
-                {/* פירוט הכנסות */}
-                {(() => {
-                  const incomeTxs = transactions.filter(t => t.type === "income" && bankIds.has(t.accountId));
-                  const incomeByCat = incomeTxs.reduce((acc, t) => { acc[t.category] = (acc[t.category]||0) + t.amount; return acc; }, {});
-                  const sortedIncome = Object.entries(incomeByCat).sort((a,b) => b[1]-a[1]);
-                  return sortedIncome.length > 0 ? (
-                    <div style={{ borderTop: "1px solid #e0ece0", paddingTop: 10, marginTop: 6 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#00b894", marginBottom: 6 }}>⬆️ פירוט הכנסות</div>
-                      {sortedIncome.map(([cat, amt]) => (
-                        <div key={cat} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "3px 0", borderBottom: "1px solid #f0f5f0" }}>
-                          <span style={{ color: "#6b7280" }}>{cat}</span>
-                          <span style={{ fontWeight: 600, color: "#00b894" }}>{fmt(amt)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null;
-                })()}
+
                 {/* סה"כ שני חשבונות */}
                 {banks.length > 1 && (
                   <div style={{ borderTop: "1px solid #e0ece0", paddingTop: 8, marginTop: 4 }}>
