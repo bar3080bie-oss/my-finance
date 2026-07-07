@@ -301,11 +301,15 @@ export default function App() {
         // אל תבדוק importIds - תמיד העלה מחדש
         const existingIds = new Set();
         const isKal = rows.some(r => Array.isArray(r) && r[1] && String(r[1]).trim().replace(/\s+/g," ") === "שם בית עסק");
-        const isDebit = rows.some(r => r && String(r[0]||"").includes("תאריך עסקה") && String(r[1]||"").includes("תאריך חיוב"));
-        const descCol = isDebit ? 2 : 1;
-        const amountCol = isDebit ? 4 : 3;
+        // ישראכארד: עמודה 1=תאריך עסקה, עמודה 2=תאריך חיוב, עמודה 3=שם העסק
+        const isIsracard = rows.some(r => r && String(r[1]||"").includes("תאריך עסקה") && String(r[2]||"").includes("תאריך חיוב"));
+        // כ.א.ל דביט: עמודה 0=תאריך עסקה, עמודה 1=תאריך חיוב, עמודה 2=שם העסק
+        const isDebit = !isIsracard && rows.some(r => r && String(r[0]||"").includes("תאריך עסקה") && String(r[1]||"").includes("תאריך חיוב"));
+        const descCol = isIsracard ? 3 : isDebit ? 2 : 1;
+        const amountCol = isIsracard ? 4 : isDebit ? 4 : 3;
+        const startRow = isIsracard ? 5 : 4;
         rows.forEach((row, i) => {
-          if (i < 4) return;
+          if (i < startRow) return;
           const desc = String(row[descCol] || "").trim().substring(0, 40);
           if (!desc || ["שם בית עסק","שם  העסק","שם העסק","סההכ"].some(h => desc.includes(h)) || !row[descCol]) return;
           const amount = parseFloat(String(row[amountCol] || row[amountCol-1] || "0").toString().replace(/[^0-9.]/g, "")) || 0;
@@ -341,7 +345,7 @@ export default function App() {
             return catMap2[ענף] || "אחר";
           };
           const category = smartCat2(desc, ענף);
-          const dateRaw = row[isDebit ? 0 : 0];
+          const dateRaw = isIsracard ? row[1] : row[isDebit ? 0 : 0];
           let dateFormatted = new Date().toISOString().split("T")[0];
           if (typeof dateRaw === "string" && dateRaw.includes("T")) {
             const d = new Date(new Date(dateRaw).getTime() + 4 * 3600000);
