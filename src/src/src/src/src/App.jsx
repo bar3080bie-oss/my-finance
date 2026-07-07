@@ -207,7 +207,7 @@ export default function App() {
             };
             const dateFormatted = _parseDate(dateStr);
             if (amount > 0) {
-              newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category, desc, date: dateFormatted });
+              newTxs.push({ id: Date.now() + i, importId, accountId, type, amount, category: type === "income" ? (incomeCategory || "הכנסה אחרת") : category, desc, date: dateFormatted });
               imported++;
             }
           } else {
@@ -667,6 +667,23 @@ export default function App() {
                     </div>
                   );
                 })}
+                {/* פירוט הכנסות */}
+                {(() => {
+                  const incomeTxs = transactions.filter(t => t.type === "income" && bankIds.has(t.accountId));
+                  const incomeByCat = incomeTxs.reduce((acc, t) => { acc[t.category] = (acc[t.category]||0) + t.amount; return acc; }, {});
+                  const sortedIncome = Object.entries(incomeByCat).sort((a,b) => b[1]-a[1]);
+                  return sortedIncome.length > 0 ? (
+                    <div style={{ borderTop: "1px solid #e0ece0", paddingTop: 10, marginTop: 6 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#00b894", marginBottom: 6 }}>⬆️ פירוט הכנסות</div>
+                      {sortedIncome.map(([cat, amt]) => (
+                        <div key={cat} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "3px 0", borderBottom: "1px solid #f0f5f0" }}>
+                          <span style={{ color: "#6b7280" }}>{cat}</span>
+                          <span style={{ fontWeight: 600, color: "#00b894" }}>{fmt(amt)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
                 {/* סה"כ שני חשבונות */}
                 {banks.length > 1 && (
                   <div style={{ borderTop: "1px solid #e0ece0", paddingTop: 8, marginTop: 4 }}>
