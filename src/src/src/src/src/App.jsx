@@ -815,7 +815,12 @@ export default function App() {
                     <button onClick={() => { setNewTx(p => ({ ...p, accountId: acc.id })); setShowAddTx(true); }} style={S.btnSm}>+ עסקה</button>
                     <label style={{ ...S.btnSm, cursor: "pointer" }}>
                       📂 Excel
-                      <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) importExcel(e.target.files[0], acc.id); }} />
+                      <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={e => {
+                        if (e.target.files[0]) {
+                          setTransactions(prev => prev.filter(t => t.accountId !== acc.id));
+                          setTimeout(() => importExcel(e.target.files[0], acc.id), 50);
+                        }
+                      }} />
                     </label>
                   </div>
 
